@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>news.services &#8212; NewsDesk 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for news.services</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Fetch external headlines and deliver approved news to subscribed readers."""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+
+<span class="n">HACKER_NEWS_API</span> <span class="o">=</span> <span class="s2">"https://hn.algolia.com/api/v1/search"</span>
+
+
+<div class="viewcode-block" id="fetch_external_news">
+<a class="viewcode-back" href="../../index.html#news.services.fetch_external_news">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_external_news</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="s2">"technology"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Fetch normalized stories, returning an empty list on HTTP/JSON errors.</span>
+
+<span class="sd">    :param str query: Search terms, defaulting to technology.</span>
+<span class="sd">    :param int limit: Maximum number of requested results, defaulting to 10.</span>
+<span class="sd">    :return: Dictionaries containing title, url, author, and created_at.</span>
+<span class="sd">    :rtype: list[dict]</span>
+
+<span class="sd">    The request has a five-second timeout. Entries without a title are skipped.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">HACKER_NEWS_API</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"query"</span><span class="p">:</span> <span class="n">query</span><span class="p">,</span> <span class="s2">"tags"</span><span class="p">:</span> <span class="s2">"story"</span><span class="p">,</span> <span class="s2">"hitsPerPage"</span><span class="p">:</span> <span class="n">limit</span><span class="p">},</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">stories</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"hits"</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"title"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">title</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">stories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"title"</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span>
+                    <span class="s2">"url"</span><span class="p">:</span> <span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"url"</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="sa">f</span><span class="s2">"https://news.ycombinator.com/item?id=</span><span class="si">{</span><span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'objectID'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="s2">"author"</span><span class="p">:</span> <span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"author"</span><span class="p">,</span> <span class="s2">"Unknown"</span><span class="p">),</span>
+                    <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">hit</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"created_at"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">stories</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">RequestException</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[]</span></div>
+
+
+
+<div class="viewcode-block" id="queue_publication_emails">
+<a class="viewcode-back" href="../../index.html#news.services.queue_publication_emails">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">queue_publication_emails</span><span class="p">(</span><span class="n">article</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Snapshot subscribed reader addresses once for an approved article.</span>
+
+<span class="sd">    Call inside the approval transaction. Following both the publisher and the</span>
+<span class="sd">    journalist still produces only one notification for each reader.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Q</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Profile</span><span class="p">,</span> <span class="n">PublicationEmail</span>
+
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">Q</span><span class="p">(</span><span class="n">journalists</span><span class="o">=</span><span class="n">article</span><span class="o">.</span><span class="n">author</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">article</span><span class="o">.</span><span class="n">publisher_id</span><span class="p">:</span>
+        <span class="n">sources</span> <span class="o">|=</span> <span class="n">Q</span><span class="p">(</span><span class="n">publishers</span><span class="o">=</span><span class="n">article</span><span class="o">.</span><span class="n">publisher</span><span class="p">)</span>
+    <span class="n">readers</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">Profile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"reader"</span><span class="p">,</span> <span class="n">user__is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">user__email</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">"user"</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">profile</span> <span class="ow">in</span> <span class="n">readers</span><span class="p">:</span>
+        <span class="n">PublicationEmail</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">article</span><span class="o">=</span><span class="n">article</span><span class="p">,</span>
+            <span class="n">reader</span><span class="o">=</span><span class="n">profile</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+            <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">"recipient"</span><span class="p">:</span> <span class="n">profile</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">},</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="send_publication_emails">
+<a class="viewcode-back" href="../../index.html#news.services.send_publication_emails">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">send_publication_emails</span><span class="p">(</span><span class="n">article</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Deliver unsent notifications privately and return the failure count.</span>
+
+<span class="sd">    Lock each notification while sending to serialize simultaneous retry requests.</span>
+<span class="sd">    SMTP errors leave it unsent for an editor's later retry. A process crash after</span>
+<span class="sd">    SMTP accepts a message but before the database commit can still duplicate mail.</span>
+<span class="sd">    """</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">smtplib</span><span class="w"> </span><span class="kn">import</span> <span class="n">SMTPException</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">django.conf</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">django.core.mail</span><span class="w"> </span><span class="kn">import</span> <span class="n">send_mail</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">transaction</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">django.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">timezone</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicationEmail</span>
+
+    <span class="n">failed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">notification_id</span> <span class="ow">in</span> <span class="n">article</span><span class="o">.</span><span class="n">notifications</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">sent_at__isnull</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s2">"pk"</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
+            <span class="c1"># Also lock the article: a concurrent edit must not email an unapproved draft.</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">article</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">article</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">current</span><span class="o">.</span><span class="n">approved</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">PublicationEmail</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">notification_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">sent_at</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">profile</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">reader</span><span class="p">,</span> <span class="s2">"profile"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">subscribed</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">profile</span>
+                <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">"reader"</span>
+                <span class="ow">and</span> <span class="p">(</span>
+                    <span class="n">profile</span><span class="o">.</span><span class="n">journalists</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">current</span><span class="o">.</span><span class="n">author_id</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+                    <span class="ow">or</span> <span class="p">(</span>
+                        <span class="n">current</span><span class="o">.</span><span class="n">publisher_id</span>
+                        <span class="ow">and</span> <span class="n">profile</span><span class="o">.</span><span class="n">publishers</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">current</span><span class="o">.</span><span class="n">publisher_id</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">is_active</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">subscribed</span><span class="p">:</span>
+                <span class="n">item</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+                <span class="k">continue</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">SITE_URL</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="o">+</span> <span class="n">current</span><span class="o">.</span><span class="n">get_absolute_url</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">delivered</span> <span class="o">=</span> <span class="n">send_mail</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"NewsDesk: </span><span class="si">{</span><span class="n">current</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">current</span><span class="o">.</span><span class="n">title</span><span class="si">}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">current</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">current</span><span class="o">.</span><span class="n">body</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">Read online: </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="n">settings</span><span class="o">.</span><span class="n">DEFAULT_FROM_EMAIL</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">recipient</span><span class="p">],</span>
+                    <span class="n">fail_silently</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">delivered</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s2">"Email backend did not accept the message."</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">SMTPException</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">"Publication email </span><span class="si">%s</span><span class="s2"> could not be delivered."</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">pk</span>
+                <span class="p">)</span>
+                <span class="n">failed</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">item</span><span class="o">.</span><span class="n">sent_at</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                <span class="n">item</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"sent_at"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">failed</span></div>
+
+
+
+<div class="viewcode-block" id="post_approved_article">
+<a class="viewcode-back" href="../../index.html#news.services.post_approved_article">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">post_approved_article</span><span class="p">(</span><span class="n">article</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""POST an approved article ID to the configured local API and report success.</span>
+
+<span class="sd">    No network request occurs without an operator-provided key. The receiver is</span>
+<span class="sd">    idempotent; failed delivery can be retried through either approval view.</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">django.conf</span><span class="w"> </span><span class="kn">import</span> <span class="n">settings</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">article</span><span class="o">.</span><span class="n">approved</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">settings</span><span class="o">.</span><span class="n">APPROVAL_API_KEY</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="n">settings</span><span class="o">.</span><span class="n">APPROVAL_API_URL</span><span class="p">,</span>
+            <span class="n">json</span><span class="o">=</span><span class="p">{</span><span class="s2">"article_id"</span><span class="p">:</span> <span class="n">article</span><span class="o">.</span><span class="n">pk</span><span class="p">},</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"X-Approval-Key"</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">APPROVAL_API_KEY</span><span class="p">},</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+            <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">201</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"logged"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span>
+            <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"article_id"</span><span class="p">)</span> <span class="o">==</span> <span class="n">article</span><span class="o">.</span><span class="n">pk</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">RequestException</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">NewsDesk</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">NewsDesk user guide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

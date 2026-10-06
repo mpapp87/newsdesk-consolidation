@@ -10,6 +10,8 @@ import django
 
 django.setup()
 project = "NewsDesk"
-extensions = ["sphinx.ext.autodoc"]
+author = "Michael Papp"
+release = "1.0.0"
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx.ext.napoleon"]
 html_theme = "alabaster"
 exclude_patterns = ["_build"]
