@@ -45,7 +45,7 @@ To test real delivery, configure an SMTP provider in ``.env`` and select
 Use a new article because console-delivered notifications are marked sent.
 
 Publishers and newsletters
--------------------------
+--------------------------
 
 A Django administrator creates publishers and assigns journalist/editor members
 in ``/admin/``. Independent journalists can leave the publisher blank. Journalists
