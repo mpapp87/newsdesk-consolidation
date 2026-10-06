@@ -2,7 +2,13 @@
 
 
 def has_role(user, role):
-    """Return whether an authenticated user has the requested profile role."""
+    """Check a role without granting permissions to anonymous users.
+
+    :param user: Django user or anonymous user from the current request.
+    :param str role: Expected profile role: reader, journalist, or editor.
+    :return: Whether the authenticated user has that profile role.
+    :rtype: bool
+    """
     return (
         user.is_authenticated and hasattr(user, "profile") and user.profile.role == role
     )
