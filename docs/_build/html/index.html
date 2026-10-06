@@ -554,11 +554,15 @@ SMTP accepts a message but before the database commit can still duplicate mail.<
 </section>
 <section id="module-accounts.models">
 <span id="custom-user"></span><h2>Custom user<a class="headerlink" href="#module-accounts.models" title="Link to this heading">¶</a></h2>
-<p>Extend Django users without replacing existing account tables or passwords.</p>
+<p>Provide the custom user model for NewsDesk authentication.</p>
+<p>The model reuses legacy account tables. Role and subscription state is stored
+on the related news profile, preserving existing accounts during consolidation.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="accounts.models.User">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">accounts.models.</span></span><span class="sig-name descname"><span class="pre">User</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/accounts/models.html#User"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#accounts.models.User" title="Link to this definition">¶</a></dt>
 <dd><p>Expose role-specific news relationships through a normalized profile.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">get_user_model()</span></code> to retrieve this class in application code.
+The model does not grant editorial access merely because an account is staff.</p>
 <p>Reuse the original auth_user table so existing article ownership and password
 hashes remain valid. Reader subscription joins live on the one-to-one profile;
 empty/nonapplicable relationships are exposed as None for other roles.</p>
