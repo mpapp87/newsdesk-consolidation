@@ -1,10 +1,17 @@
-"""Extend Django users without replacing existing account tables or passwords."""
+"""Provide the custom user model for NewsDesk authentication.
+
+The model reuses legacy account tables. Role and subscription state is stored
+on the related news profile, preserving existing accounts during consolidation.
+"""
 
 from django.contrib.auth.models import AbstractUser
 
 
 class User(AbstractUser):
     """Expose role-specific news relationships through a normalized profile.
+
+    Use ``get_user_model()`` to retrieve this class in application code.
+    The model does not grant editorial access merely because an account is staff.
 
     Reuse the original auth_user table so existing article ownership and password
     hashes remain valid. Reader subscription joins live on the one-to-one profile;
