@@ -1,4 +1,88 @@
-# NewsDesk — Task 20 News Application
+# NewsDesk — M07T05 Consolidation Capstone
+
+This consolidation is based on the **M06T08 News Application**, which Michael
+confirmed had passed review on 6 October 2026. The earlier sticky-notes additions
+are not the basis of this project. The application was imported from the coursework
+repository, then enhanced through the required local `docs` and `container` branches.
+Both branches are retained and merged into `main`; each of the three documented
+Python scripts has its own commit on `docs`.
+
+## Quick start with Docker
+
+Install Docker Desktop (or Docker Engine with Compose on Linux), then:
+
+```sh
+git clone https://github.com/mpapp87/newsdesk-consolidation.git
+cd newsdesk-consolidation
+cp .env.docker.example .env
+```
+
+Windows PowerShell users can use `Copy-Item .env.docker.example .env`.
+Generate four independent private values by running the following command four
+times, then paste them into `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`,
+and `APPROVAL_API_KEY` in `.env`:
+
+```sh
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Use `python3` or `py` if that is your local Python command. If Python is not
+installed, each value can instead be generated with:
+
+```sh
+docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Do not use the placeholder values. `.env` is excluded from Git and Docker builds.
+
+```sh
+docker compose up --build -d
+docker compose exec web python manage.py createsuperuser
+```
+
+Open <http://localhost:8000>. MariaDB starts first, then Django applies migrations
+and starts the threaded development server. Register normal role accounts at
+`/register/`. Inspect logs with `docker compose logs db web`. Stop using
+`docker compose down`; the named database volume persists. Do not add `-v` unless
+intentionally deleting the database. If you change database passwords after the
+first run, update the database account as well; changing `.env` alone does not
+change an existing MariaDB volume's credentials.
+
+The default Docker configuration prints email in the container logs. It does not
+send email. To deliver real notifications, obtain SMTP settings from your provider,
+edit the email variables in `.env`, select the SMTP backend, and recreate the web
+service with `docker compose up -d --force-recreate web`. Use a new article when
+testing real delivery. The approval callback works internally at
+`http://127.0.0.1:8000/api/approved/` with your private service key.
+
+This is a local development demonstration, bound to localhost, using debug mode.
+A public deployment requires a production server, HTTPS, static-file hosting,
+restricted host names, and verified editor accounts.
+
+## Consolidation documentation and verification
+
+Open `docs/_build/html/index.html` from a downloaded checkout to read the generated
+Sphinx guide and API reference. Built HTML is committed as explicitly required by
+M07T05; build caches, virtual environments, secrets and database dumps are ignored.
+To rebuild, activate your virtual environment, then run:
+
+```sh
+python -m pip install -r requirements-docs.txt
+python -m sphinx -W --keep-going -b html docs docs/_build/html
+```
+
+The `docs` branch includes individual commits for `news/roles.py`,
+`news/services.py`, and `accounts/models.py`, followed by Sphinx source and HTML.
+The `container` branch starts from the baseline and adds Docker/MariaDB files.
+The Git history records separate merges of both branches.
+
+The GitHub Actions workflow `.github/workflows/container-check.yml` builds this
+checkout on a separate Ubuntu machine, starts MariaDB and Django, checks the HTTP
+response and migrations, runs the test suite against MariaDB, and builds Sphinx.
+It generates disposable secrets at runtime and does not send real email.
+See the repository's Actions tab for the actual run result.
+
+The native virtual-environment setup and full application guide follow below.
 
 A Django news application with reader, journalist and editor roles, editorial approval, newsletters, subscriptions, token-authenticated APIs and email notifications. It uses **MySQL or MariaDB** for normal operation.
 
@@ -40,11 +124,11 @@ Notifications are tracked once per article and reader; reapproval after editing 
 
 ## Get this project
 
-Clone the actual course repository (your GitHub account needs access):
+Clone the public consolidation repository:
 
 ```bash
-git clone https://github.com/hyperiondev-bootcamps/MP26030020049.git
-cd "MP26030020049/Level 2 - Introduction to Software Engineering/M06T08 – Capstone Project – News Application"
+git clone https://github.com/mpapp87/newsdesk-consolidation.git
+cd newsdesk-consolidation
 ```
 
 For the supplied ZIP, extract it and open the `NewsDesk` folder containing `manage.py`.
