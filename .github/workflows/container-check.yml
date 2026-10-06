@@ -28,7 +28,7 @@ jobs:
         run: docker compose up --build -d
       - name: Check HTTP response and migrations
         run: |
-          curl --fail --retry 30 --retry-connrefused --retry-delay 2 http://localhost:8000/ -o /tmp/home.html
+          curl --fail --retry 30 --retry-connrefused --retry-all-errors --retry-delay 2 http://localhost:8000/ -o /tmp/home.html
           grep -q NewsDesk /tmp/home.html
           docker compose exec -T web python manage.py check
           docker compose exec -T web python manage.py makemigrations --check --dry-run
