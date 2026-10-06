@@ -43,7 +43,7 @@
 <div class="viewcode-block" id="Publisher">
 <a class="viewcode-back" href="../../index.html#news.models.Publisher">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Publisher</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Represent a news organization whose membership is managed by an admin."""</span>
+<span class="w">    </span><span class="sd">"""Represent a news organization managed by its editors in the application."""</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">editors</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ManyToManyField</span><span class="p">(</span>
@@ -96,7 +96,7 @@
 <div class="viewcode-block" id="Article">
 <a class="viewcode-back" href="../../index.html#news.models.Article">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Article</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Store a journalist's draft and its editor-controlled approval state."""</span>
+<span class="w">    </span><span class="sd">"""Store a draft published by its publisher editor or independent author."""</span>
 
     <span class="n">CATEGORY_CHOICES</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">"world"</span><span class="p">,</span> <span class="s2">"World"</span><span class="p">),</span>

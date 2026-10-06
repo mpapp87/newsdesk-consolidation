@@ -41,15 +41,7 @@
 <div class="viewcode-block" id="fetch_external_news">
 <a class="viewcode-back" href="../../index.html#news.services.fetch_external_news">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">fetch_external_news</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="s2">"technology"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Fetch normalized stories, returning an empty list on HTTP/JSON errors.</span>
-
-<span class="sd">    :param str query: Search terms, defaulting to technology.</span>
-<span class="sd">    :param int limit: Maximum number of requested results, defaulting to 10.</span>
-<span class="sd">    :return: Dictionaries containing title, url, author, and created_at.</span>
-<span class="sd">    :rtype: list[dict]</span>
-
-<span class="sd">    The request has a five-second timeout. Entries without a title are skipped.</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Return a normalized list of current stories from the Hacker News API."""</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="n">HACKER_NEWS_API</span><span class="p">,</span>
@@ -94,6 +86,7 @@
     <span class="n">readers</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">Profile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">role</span><span class="o">=</span><span class="s2">"reader"</span><span class="p">,</span> <span class="n">user__is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">user__email</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="n">user__email__isnull</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">"user"</span><span class="p">)</span>
         <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
     <span class="p">)</span>

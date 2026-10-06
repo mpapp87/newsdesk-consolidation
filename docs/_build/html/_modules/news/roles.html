@@ -37,15 +37,11 @@
 <div class="viewcode-block" id="has_role">
 <a class="viewcode-back" href="../../index.html#news.roles.has_role">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">has_role</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">role</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Check a role without granting permissions to anonymous users.</span>
-
-<span class="sd">    :param user: Django user or anonymous user from the current request.</span>
-<span class="sd">    :param str role: Expected profile role: reader, journalist, or editor.</span>
-<span class="sd">    :return: Whether the authenticated user has that profile role.</span>
-<span class="sd">    :rtype: bool</span>
-<span class="sd">    """</span>
+<span class="w">    </span><span class="sd">"""Return whether an authenticated user has the requested profile role."""</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"profile"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">user</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="n">role</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span>
+        <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"profile"</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">user</span><span class="o">.</span><span class="n">profile</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="n">role</span>
     <span class="p">)</span></div>
 
 
@@ -53,7 +49,12 @@
 <div class="viewcode-block" id="can_edit">
 <a class="viewcode-back" href="../../index.html#news.roles.can_edit">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">can_edit</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">article</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Allow editors to manage articles and journalists to manage their own."""</span>
+<span class="w">    </span><span class="sd">"""Allow article owners and assigned publisher editors to manage stories."""</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">article</span><span class="p">,</span> <span class="s2">"approved"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has_role</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">bool</span><span class="p">(</span><span class="n">article</span><span class="o">.</span><span class="n">publisher_id</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">article</span><span class="o">.</span><span class="n">publisher</span><span class="o">.</span><span class="n">editors</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">has_role</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
         <span class="n">has_role</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">article</span><span class="o">.</span><span class="n">author_id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">pk</span>
     <span class="p">)</span></div>
@@ -68,6 +69,19 @@
         <span class="sa">f</span><span class="s2">"is_</span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">role</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"reader"</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span>
     <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="can_publish">
+<a class="viewcode-back" href="../../index.html#news.roles.can_publish">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">can_publish</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">article</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Let publisher editors approve, or independent journalists self-publish."""</span>
+    <span class="k">if</span> <span class="n">article</span><span class="o">.</span><span class="n">publisher_id</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">has_role</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">article</span><span class="o">.</span><span class="n">publisher</span><span class="o">.</span><span class="n">editors</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">has_role</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">article</span><span class="o">.</span><span class="n">author_id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">pk</span></div>
 
 </pre></div>
 

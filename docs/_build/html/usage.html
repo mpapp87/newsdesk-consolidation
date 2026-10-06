@@ -34,86 +34,171 @@
             
   <section id="newsdesk-user-guide">
 <h1>NewsDesk user guide<a class="headerlink" href="#newsdesk-user-guide" title="Link to this heading">¶</a></h1>
-<p>NewsDesk is the passed M06T08 News Application, consolidated with Sphinx
-documentation and a Docker development environment for M07T05.</p>
-<section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
-<p>For a native installation, use Python 3.12, create a virtual environment and
-install <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>. Install MySQL/MariaDB and its client development
-libraries first. Copy <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> to <code class="docutils literal notranslate"><span class="pre">.env</span></code> and provide private database,
-Django, SMTP and approval service settings. Apply migrations and start Django:</p>
+<p>This M07T05 consolidation includes the corrected M06T08 News Application from
+<code class="docutils literal notranslate"><span class="pre">mpapp87/newsdesk-app</span></code> at commit <code class="docutils literal notranslate"><span class="pre">0f69ebafb03a977c095b55985d06a1d858d530fa</span></code>.
+The updated application still needs a successful course review before requesting
+consolidation review. These instructions describe the implemented behavior.</p>
+<section id="docker-installation-complete-independent-route">
+<h2>Docker installation: complete independent route<a class="headerlink" href="#docker-installation-complete-independent-route" title="Link to this heading">¶</a></h2>
+<ol class="arabic">
+<li><p>Install Git and Docker Desktop, or Docker Engine with Compose on Linux.</p></li>
+<li><p>Open Docker Desktop and wait for the engine to run. On Linux, start Docker.</p></li>
+<li><p>Verify that Docker is available before proceeding:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="o">--</span><span class="n">version</span>
+<span class="n">docker</span> <span class="n">info</span>
+<span class="n">docker</span> <span class="n">compose</span> <span class="n">version</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clone the project and prepare configuration:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mpapp87</span><span class="o">/</span><span class="n">newsdesk</span><span class="o">-</span><span class="n">consolidation</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">newsdesk</span><span class="o">-</span><span class="n">consolidation</span>
+<span class="n">cp</span> <span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">docker</span><span class="o">.</span><span class="n">example</span> <span class="o">.</span><span class="n">env</span>
+</pre></div>
+</div>
+<p>In PowerShell use <code class="docutils literal notranslate"><span class="pre">Copy-Item</span> <span class="pre">.env.docker.example</span> <span class="pre">.env</span></code>.</p>
+</li>
+<li><p>Run this command four times to generate four different private values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">run</span> <span class="o">--</span><span class="n">rm</span> <span class="n">python</span><span class="p">:</span><span class="mf">3.12</span><span class="o">-</span><span class="n">slim</span> <span class="n">python</span> <span class="o">-</span><span class="n">c</span> <span class="s2">"import secrets; print(secrets.token_hex(32))"</span>
+</pre></div>
+</div>
+<p>Put them in <code class="docutils literal notranslate"><span class="pre">DJANGO_SECRET_KEY</span></code>, <code class="docutils literal notranslate"><span class="pre">DB_PASSWORD</span></code>, <code class="docutils literal notranslate"><span class="pre">DB_ROOT_PASSWORD</span></code> and
+<code class="docutils literal notranslate"><span class="pre">APPROVAL_API_KEY</span></code> in <code class="docutils literal notranslate"><span class="pre">.env</span></code>. Never commit this file or reuse placeholders.</p>
+</li>
+<li><p>Build and start the services:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">compose</span> <span class="n">up</span> <span class="o">--</span><span class="n">build</span> <span class="o">-</span><span class="n">d</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Visit <a class="reference external" href="http://localhost:8000">http://localhost:8000</a>. This route requires no host Python installation,
+manual database installation or virtual environment. MariaDB becomes healthy
+before Django applies migrations and starts the threaded development server.
+Register normal role accounts in the app. Optional maintenance access can be
+created with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">exec</span> <span class="pre">web</span> <span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">createsuperuser</span></code>.</p>
+<p>Data persists in a named Docker volume. Stop with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">down</span></code>;
+do not add <code class="docutils literal notranslate"><span class="pre">-v</span></code> unless intentionally deleting that database. Changing <code class="docutils literal notranslate"><span class="pre">.env</span></code>
+passwords does not change accounts in an existing database volume.</p>
+</section>
+<section id="manual-installation-separate-alternative">
+<h2>Manual installation: separate alternative<a class="headerlink" href="#manual-installation-separate-alternative" title="Link to this heading">¶</a></h2>
+<p>Install Git, Python 3.12 and MariaDB/MySQL with client development libraries.
+Start the database service. From a new terminal, clone the application:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">mpapp87</span><span class="o">/</span><span class="n">newsdesk</span><span class="o">-</span><span class="n">consolidation</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">newsdesk</span><span class="o">-</span><span class="n">consolidation</span>
+<span class="n">python3</span><span class="mf">.12</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="o">.</span><span class="n">venv</span>
+<span class="n">source</span> <span class="o">.</span><span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
+<span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>On Windows use <code class="docutils literal notranslate"><span class="pre">py</span> <span class="pre">-3.12</span> <span class="pre">-m</span> <span class="pre">venv</span> <span class="pre">.venv</span></code> and <code class="docutils literal notranslate"><span class="pre">.venv\Scripts\activate</span></code>.
+Create the <code class="docutils literal notranslate"><span class="pre">newsdesk</span></code> database and a dedicated database user, using the
+platform-specific instructions and SQL grants in the root README. Copy
+<code class="docutils literal notranslate"><span class="pre">.env.example</span></code> to <code class="docutils literal notranslate"><span class="pre">.env</span></code> and provide private database, Django, SMTP and
+approval-service settings. Then run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">migrate</span>
-<span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">createsuperuser</span>
 <span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">runserver</span>
 </pre></div>
 </div>
-<p>The root README contains platform-specific database setup and commands.</p>
-<p>For Docker, copy <code class="docutils literal notranslate"><span class="pre">.env.docker.example</span></code> to <code class="docutils literal notranslate"><span class="pre">.env</span></code> and replace each placeholder
-with a private generated secret. Start the web and MariaDB services:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">compose</span> <span class="n">up</span> <span class="o">--</span><span class="n">build</span> <span class="o">-</span><span class="n">d</span>
-<span class="n">docker</span> <span class="n">compose</span> <span class="n">exec</span> <span class="n">web</span> <span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">createsuperuser</span>
-</pre></div>
-</div>
-<p>Visit <a class="reference external" href="http://localhost:8000">http://localhost:8000</a>. Docker Compose waits for MariaDB, then the web
-container applies migrations before starting the development server. Database
-data persists in a named Docker volume. Stop with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">down</span></code>;
-do not add <code class="docutils literal notranslate"><span class="pre">-v</span></code> unless intentionally deleting that database.</p>
+<p>Visit <a class="reference external" href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>. This alternative does not use Docker. The README also
+explains the staged upgrade for legacy databases using Django’s original user
+model. Back up existing data first. If duplicate legacy emails block migration,
+correct those account addresses through maintenance and retry. No accounts or
+subscriptions are automatically deleted or merged.</p>
+</section>
+<section id="accounts-and-publishers">
+<h2>Accounts and publishers<a class="headerlink" href="#accounts-and-publishers" title="Link to this heading">¶</a></h2>
+<p>Register Reader, Journalist and Editor accounts with distinct email addresses.
+Email matching ignores case and surrounding whitespace; database uniqueness
+also protects simultaneous registration requests. Legacy accounts with no email
+remain supported, but new public registrations require an email.</p>
+<p>Editors open <strong>Publishers</strong> in the navigation, create an organization and select
+registered journalists. They can rename their organization and update membership
+there. A creating editor automatically belongs to the publisher. Other editors
+cannot take over the organization. Django admin is reserved for maintenance;
+it is not required to create publishers or publish articles.</p>
 </section>
 <section id="publishing-a-story">
 <h2>Publishing a story<a class="headerlink" href="#publishing-a-story" title="Link to this heading">¶</a></h2>
+<p>For a publisher story:</p>
 <ol class="arabic simple">
-<li><p>Register separate Reader, Journalist and Editor accounts.</p></li>
-<li><p>As a reader, subscribe to a journalist or publisher under Subscriptions.</p></li>
-<li><p>As a journalist, submit an article. It remains a draft in the Newsroom.</p></li>
-<li><p>As an editor, open the draft and approve it.</p></li>
-<li><p>Readers can now read, save, and comment on the published story.</p></li>
+<li><p>An editor creates the publisher and assigns registered journalists.</p></li>
+<li><p>A journalist selects that publisher and saves an article.</p></li>
+<li><p>An editor belonging to that publisher opens <strong>Newsroom</strong>, opens the article
+using its underlined headline or action link, and chooses <strong>Approve and publish</strong>.</p></li>
+<li><p>Readers can read, save, comment and subscribe directly on the article.</p></li>
 </ol>
-<p>The Docker demonstration uses console email by default. Read messages in
-<code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">logs</span> <span class="pre">web</span></code>; no real email is delivered in this mode.
-To test real delivery, configure an SMTP provider in <code class="docutils literal notranslate"><span class="pre">.env</span></code> and select
-<code class="docutils literal notranslate"><span class="pre">django.core.mail.backends.smtp.EmailBackend</span></code>. Restart the web service.
-Use a new article because console-delivered notifications are marked sent.</p>
+<p>For independent work:</p>
+<ol class="arabic simple">
+<li><p>A journalist leaves Publisher blank and saves a private draft.</p></li>
+<li><p>After editing, its author chooses <strong>Publish article</strong>.</p></li>
+<li><p>The article becomes public without an editor’s approval.</p></li>
+</ol>
+<p>Other journalists and editors cannot publish an independent author’s draft.
+Editing published content returns it to draft: an independent author republishes
+it, while a publisher story returns for that publisher’s editor approval.</p>
 </section>
-<section id="publishers-and-newsletters">
-<h2>Publishers and newsletters<a class="headerlink" href="#publishers-and-newsletters" title="Link to this heading">¶</a></h2>
-<p>A Django administrator creates publishers and assigns journalist/editor members
-in <code class="docutils literal notranslate"><span class="pre">/admin/</span></code>. Independent journalists can leave the publisher blank. Journalists
-manage their own newsletters, while editors can manage all newsletters. Only
-approved articles appear to readers.</p>
+<section id="subscriptions-and-delivery-status">
+<h2>Subscriptions and delivery status<a class="headerlink" href="#subscriptions-and-delivery-status" title="Link to this heading">¶</a></h2>
+<p>Readers follow journalists or publishers using <strong>Subscriptions</strong> or the buttons
+on a published article. Article buttons also allow unsubscribing. These operations
+change only the chosen source and preserve other subscriptions. Following both
+sources does not duplicate a reader’s tracked publication notification.</p>
+<p>Publication commits before external delivery. <strong>Retry pending delivery</strong> appears
+only if an email is still unsent or the publication receipt has not been recorded.
+Completed notifications are not resent on retry. When both processing steps are
+complete, the page says <strong>No retry is needed</strong> and hides the retry button.</p>
+<p>Docker uses console email by default. Read messages in <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">logs</span> <span class="pre">web</span></code>;
+no real email is delivered in this mode. For real delivery, configure an SMTP
+provider in <code class="docutils literal notranslate"><span class="pre">.env</span></code> and select <code class="docutils literal notranslate"><span class="pre">django.core.mail.backends.smtp.EmailBackend</span></code>.
+Recreate the web service with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">up</span> <span class="pre">-d</span> <span class="pre">--force-recreate</span> <span class="pre">web</span></code>.
+Use a new article because console-processed notifications are already marked sent.</p>
 </section>
-<section id="api-clients">
-<h2>API clients<a class="headerlink" href="#api-clients" title="Link to this heading">¶</a></h2>
-<p>Obtain a token through <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/token/</span></code> and send it as
-<code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">Token</span> <span class="pre">&lt;your-token&gt;</span></code>. Tokens and passwords are private.
-<code class="docutils literal notranslate"><span class="pre">/api/articles/</span></code> lists visible articles; journalists can create drafts.
-<code class="docutils literal notranslate"><span class="pre">/api/articles/subscribed/</span></code> is the reader’s subscription feed. Editors can
-approve through <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/articles/&lt;id&gt;/approve/</span></code>. The README documents
-the full endpoint list and role restrictions.</p>
+<section id="newsletters-and-api-clients">
+<h2>Newsletters and API clients<a class="headerlink" href="#newsletters-and-api-clients" title="Link to this heading">¶</a></h2>
+<p>Journalists manage their own newsletters; editors can curate newsletters. Only
+published articles appear in reader-visible newsletters. Obtain an API token
+through <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/token/</span></code> and send <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">Token</span> <span class="pre">&lt;your-token&gt;</span></code>.
+Tokens and passwords are private.</p>
+<p><code class="docutils literal notranslate"><span class="pre">/api/articles/</span></code> lists published articles and allows journalists to create drafts.
+<code class="docutils literal notranslate"><span class="pre">/api/articles/subscribed/</span></code> returns the current reader’s subscription feed.
+<code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/api/articles/&lt;id&gt;/approve/</span></code> applies the same publication rules as HTML:
+assigned publisher editors approve publisher stories; independent authors publish
+their own stories. The existing URL is retained for client compatibility. The
+README lists all endpoints. The server rejects forged authorship and approval flags.</p>
 </section>
 <section id="verification-and-troubleshooting">
 <h2>Verification and troubleshooting<a class="headerlink" href="#verification-and-troubleshooting" title="Link to this heading">¶</a></h2>
-<p>Run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">exec</span> <span class="pre">web</span> <span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">check</span></code> to check configuration.
-Run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">logs</span> <span class="pre">db</span> <span class="pre">web</span></code> if startup fails. Ensure local port 8000 is
-free, Docker is running, and the generated database passwords match.</p>
-<p>Fast unit tests use explicit test-only SQLite settings:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">test</span> <span class="o">--</span><span class="n">settings</span><span class="o">=</span><span class="n">news_project</span><span class="o">.</span><span class="n">test_settings</span>
+<p>The committed GitHub workflow builds Docker on a separate Ubuntu machine, runs
+HTTP and migration checks, runs the tests against MariaDB, and builds Sphinx with
+warnings treated as errors. Tests cover access boundaries, duplicate registration,
+safe migrations, publisher management, independent publishing and subscriptions.
+They mock external delivery and do not prove receipt by a real email provider.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">logs</span> <span class="pre">db</span> <span class="pre">web</span></code> if startup fails. Ensure Docker is running,
+port 8000 is free, and the configured passwords match the database accounts.
+Run <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">compose</span> <span class="pre">exec</span> <span class="pre">web</span> <span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">check</span></code> for Django checks.
+For fast isolated tests:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">compose</span> <span class="n">exec</span> <span class="n">web</span> <span class="n">python</span> <span class="n">manage</span><span class="o">.</span><span class="n">py</span> <span class="n">test</span> <span class="o">--</span><span class="n">settings</span><span class="o">=</span><span class="n">news_project</span><span class="o">.</span><span class="n">test_settings</span> <span class="o">--</span><span class="n">noinput</span>
 </pre></div>
 </div>
-<p>Normal operation always uses MySQL/MariaDB. Tests against a real database need
-permission to create the <code class="docutils literal notranslate"><span class="pre">test_newsdesk</span></code> database. See the README for grants.</p>
-<p>Build these docs with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">requirements-docs.txt</span></code> followed by:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">sphinx</span> <span class="o">-</span><span class="n">W</span> <span class="o">--</span><span class="n">keep</span><span class="o">-</span><span class="n">going</span> <span class="o">-</span><span class="n">b</span> <span class="n">html</span> <span class="n">docs</span> <span class="n">docs</span><span class="o">/</span><span class="n">_build</span><span class="o">/</span><span class="n">html</span>
+<p>For native MariaDB tests, grant the test database privilege described in the README
+and run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">test</span> <span class="pre">--noinput</span></code> in the activated environment.
+Normal operation always uses MySQL/MariaDB; SQLite settings are test-only.</p>
+<p>Rebuild documentation in the activated native environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">-</span><span class="n">docs</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">sphinx</span> <span class="o">-</span><span class="n">W</span> <span class="o">--</span><span class="n">keep</span><span class="o">-</span><span class="n">going</span> <span class="o">-</span><span class="n">b</span> <span class="n">html</span> <span class="n">docs</span> <span class="n">docs</span><span class="o">/</span><span class="n">_build</span><span class="o">/</span><span class="n">html</span>
 </pre></div>
 </div>
-<p>Open <code class="docutils literal notranslate"><span class="pre">docs/_build/html/index.html</span></code>. The committed HTML is included for reviewers;
-virtual environments, secrets, database dumps, and build caches are excluded.</p>
+<p>Open <code class="docutils literal notranslate"><span class="pre">docs/_build/html/index.html</span></code>. Generated HTML is committed for reviewers;
+virtual environments, secrets, database dumps and build caches are excluded.</p>
 </section>
 <section id="deployment-limits">
 <h2>Deployment limits<a class="headerlink" href="#deployment-limits" title="Link to this heading">¶</a></h2>
-<p>The supplied Docker setup is a local coursework demonstration using Django’s
-development server and debug mode. Internet deployment requires a production
-server, HTTPS, proper static-file serving, restricted host names and verified
-editor registration. Never publish real <code class="docutils literal notranslate"><span class="pre">.env</span></code> files or account data.</p>
+<p>This is a local coursework demonstration using Django’s development server.
+Public deployment needs a production server, HTTPS, proper static-file serving,
+restricted hosts and verified editor registration. Never publish private settings
+or account data. An SMTP crash after acceptance but before recording success can
+still cause a duplicate; notification tracking is not an exactly-once transport.</p>
 </section>
 </section>
 
@@ -146,10 +231,12 @@ editor registration. Never publish real <code class="docutils literal notranslat
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">NewsDesk user guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#docker-installation-complete-independent-route">Docker installation: complete independent route</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#manual-installation-separate-alternative">Manual installation: separate alternative</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#accounts-and-publishers">Accounts and publishers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#publishing-a-story">Publishing a story</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#publishers-and-newsletters">Publishers and newsletters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#api-clients">API clients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#subscriptions-and-delivery-status">Subscriptions and delivery status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#newsletters-and-api-clients">Newsletters and API clients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#verification-and-troubleshooting">Verification and troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#deployment-limits">Deployment limits</a></li>
 </ul>
