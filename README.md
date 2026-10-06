@@ -7,9 +7,23 @@ repository, then enhanced through the required local `docs` and `container` bran
 Both branches are retained and merged into `main`; each of the three documented
 Python scripts has its own commit on `docs`.
 
-## Quick start with Docker
+## Quick start with Docker — independent setup
 
-Install Docker Desktop (or Docker Engine with Compose on Linux), then:
+This route does not require the virtual-environment steps below or a previous clone.
+
+1. Install Git and Docker Desktop (or Docker Engine with the Compose plugin on Linux).
+2. Open Docker Desktop and wait until the engine says it is running. On Linux,
+   start the Docker service. Keep Docker running throughout these steps.
+3. Open a terminal and verify the prerequisites:
+
+```sh
+git --version
+docker info
+docker compose version
+```
+
+If `docker info` cannot connect, start Docker and resolve that error before continuing.
+4. Clone this repository and enter the new checkout:
 
 ```sh
 git clone https://github.com/mpapp87/newsdesk-consolidation.git
@@ -18,22 +32,16 @@ cp .env.docker.example .env
 ```
 
 Windows PowerShell users can use `Copy-Item .env.docker.example .env`.
-Generate four independent private values by running the following command four
+5. Generate four independent private values by running the following Docker command four
 times, then paste them into `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`,
 and `APPROVAL_API_KEY` in `.env`:
-
-```sh
-python -c "import secrets; print(secrets.token_hex(32))"
-```
-
-Use `python3` or `py` if that is your local Python command. If Python is not
-installed, each value can instead be generated with:
 
 ```sh
 docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 Do not use the placeholder values. `.env` is excluded from Git and Docker builds.
+6. Build and start the services. No host Python or manually installed database is needed:
 
 ```sh
 docker compose up --build -d
@@ -58,6 +66,13 @@ testing real delivery. The approval callback works internally at
 This is a local development demonstration, bound to localhost, using debug mode.
 A public deployment requires a production server, HTTPS, static-file hosting,
 restricted host names, and verified editor accounts.
+
+## News Application review dependency
+
+The latest M06T08 review corrections are in https://github.com/mpapp87/newsdesk-app.
+This consolidation snapshot predates those corrections. After the corrected News
+Application receives a successful review, synchronize that reviewed application
+into this consolidation and rebuild its documentation before requesting M07T05 review.
 
 ## Consolidation documentation and verification
 
