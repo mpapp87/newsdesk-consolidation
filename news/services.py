@@ -6,7 +6,15 @@ HACKER_NEWS_API = "https://hn.algolia.com/api/v1/search"
 
 
 def fetch_external_news(query="technology", limit=10):
-    """Return a normalized list of current stories from the Hacker News API."""
+    """Fetch normalized stories, returning an empty list on HTTP/JSON errors.
+
+    :param str query: Search terms, defaulting to technology.
+    :param int limit: Maximum number of requested results, defaulting to 10.
+    :return: Dictionaries containing title, url, author, and created_at.
+    :rtype: list[dict]
+
+    The request has a five-second timeout. Entries without a title are skipped.
+    """
     try:
         response = requests.get(
             HACKER_NEWS_API,
