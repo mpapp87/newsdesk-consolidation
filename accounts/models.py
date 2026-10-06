@@ -19,7 +19,11 @@ class User(AbstractUser):
 
     @property
     def role(self):
-        """Return the assigned role, or None for an unassigned admin account."""
+        """Read the profile role without creating or modifying a profile.
+
+        :return: The assigned role, or None for an account without a profile.
+        :rtype: str or None
+        """
         profile = getattr(self, "profile", None)
         return profile.role if profile else None
 
