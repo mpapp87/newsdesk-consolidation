@@ -1,0 +1,59 @@
+NewsDesk developer reference
+============================
+
+See the project README for database, SMTP, account roles and usage instructions.
+This reference extracts docstrings from the application source.
+
+Models
+------
+
+.. automodule:: news.models
+   :members:
+
+Forms
+-----
+
+.. automodule:: news.forms
+   :members:
+
+Views
+-----
+
+.. automodule:: news.views
+   :members:
+
+Services
+--------
+
+.. automodule:: news.services
+   :members:
+
+Role checks
+-----------
+
+.. automodule:: news.roles
+   :members:
+
+Custom user
+-----------
+
+.. automodule:: accounts.models
+   :members:
+
+API endpoints
+-------------
+
+.. automodule:: news.api
+   :members:
+
+API serializers
+---------------
+
+.. automodule:: news.serializers
+   :members:
+
+Group synchronization
+---------------------
+
+.. automodule:: news.signals
+   :members:

@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<h1>My subscriptions</h1><p>Choose journalists or publishers to receive an email when an editor approves a new article. Clear a selection to unsubscribe. Hold Command (Mac) or Ctrl (Windows) to select several sources.</p><form method="post">{% csrf_token %}{{ form.as_p }}<button>Save subscriptions</button></form>{% endblock %}

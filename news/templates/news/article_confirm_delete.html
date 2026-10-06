@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<div class="form-card"><h1>Delete article?</h1><p>This will permanently delete <strong>{{ article.title }}</strong>.</p><form method="post">{% csrf_token %}<button class="danger">Yes, delete</button> <a href="{{ article.get_absolute_url }}">Cancel</a></form></div>{% endblock %}

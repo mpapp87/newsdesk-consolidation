@@ -1,0 +1,4 @@
+{% extends 'base.html' %}
+{% block content %}<h1>{% if is_editor %}Editorial review{% else %}My submissions{% endif %}</h1>
+{% for article in articles %}<article class="card"><h2><a href="{{ article.get_absolute_url }}">{{ article.title }}</a></h2><p>By {{ article.author }} · {% if article.approved %}Approved{% else %}Awaiting approval{% endif %}</p></article>{% empty %}<p>No submissions yet.</p>{% endfor %}
+{% endblock %}

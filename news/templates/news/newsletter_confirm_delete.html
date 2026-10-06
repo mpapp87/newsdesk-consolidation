@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<h1>Delete {{ newsletter.title }}?</h1><form method="post">{% csrf_token %}<button type="submit">Delete newsletter</button> <a href="{{ newsletter.get_absolute_url }}">Cancel</a></form>{% endblock %}

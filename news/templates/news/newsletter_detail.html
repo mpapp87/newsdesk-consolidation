@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ newsletter.title }}</h1><p>{{ newsletter.description }}</p>
+{% if can_manage %}<a href="{% url 'news:newsletter_update' newsletter.pk %}">Edit newsletter</a> · <a href="{% url 'news:newsletter_delete' newsletter.pk %}">Delete newsletter</a>{% endif %}
+{% for article in articles %}<article class="card"><h2><a href="{{ article.get_absolute_url }}">{{ article.title }}</a></h2><p>{{ article.summary }}</p></article>{% empty %}<p>No approved articles in this newsletter.</p>{% endfor %}
+{% endblock %}

@@ -1,0 +1,19 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}NewsDesk{% endblock %}</title><link rel="stylesheet" href="{% static 'news/style.css' %}"></head>
+<body>
+<header><nav class="container"><a class="brand" href="{% url 'news:home' %}">NewsDesk</a><div class="navlinks">
+<a href="{% url 'news:home' %}">Home</a><a href="{% url 'news:external_news' %}">Live Tech News</a>
+{% if user.is_authenticated %}
+<a href="{% url 'news:newsletters' %}">Newsletters</a>
+<span>{{ user.username }} · {{ user.profile.get_role_display|default:'No role assigned' }}</span>
+{% if is_journalist %}<a href="{% url 'news:article_create' %}">Submit article</a>{% endif %}
+{% if is_journalist or is_editor %}<a href="{% url 'news:dashboard' %}">Newsroom</a>{% endif %}
+{% if is_reader %}<a href="{% url 'news:saved_articles' %}">Saved</a><a href="{% url 'news:subscriptions' %}">Subscriptions</a>{% endif %}
+<form class="inline" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="linkbtn">Log out</button></form>
+{% else %}<a href="{% url 'login' %}">Log in</a><a href="{% url 'news:register' %}">Register</a>{% endif %}
+</div></nav></header>
+<main class="container">{% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
+<footer><div class="container">NewsDesk - Django capstone project</div></footer>
+</body></html>

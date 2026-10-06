@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Newsletters</h1>
+{% if is_journalist or is_editor %}<p><a href="{% url 'news:newsletter_create' %}">Create newsletter</a></p>{% endif %}
+{% for item in newsletters %}<article class="card"><h2><a href="{{ item.get_absolute_url }}">{{ item.title }}</a></h2><p>{{ item.description }}</p><p>Curated by {{ item.author.username }}</p></article>{% empty %}<p>No newsletters yet.</p>{% endfor %}
+{% endblock %}
