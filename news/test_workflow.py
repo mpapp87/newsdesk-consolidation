@@ -13,7 +13,9 @@ from django.urls import reverse
 from .models import Article, Profile, Publisher, PublicationEmail
 
 
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"
+)
 class RoleWorkflowTests(TestCase):
     """Exercise the reader, journalist and editor journeys through real views."""
 
@@ -28,6 +30,7 @@ class RoleWorkflowTests(TestCase):
             self.users[role] = user
         self.publisher = Publisher.objects.create(name="Example News")
         self.publisher.journalists.add(self.users["journalist"])
+        self.publisher.editors.add(self.users["editor"])
         self.article = Article.objects.create(
             title="Pending story",
             summary="Summary",
@@ -109,7 +112,8 @@ class RoleWorkflowTests(TestCase):
         for route in ("article_update", "article_delete", "approve_article"):
             self.assertEqual(
                 self.client.post(
-                    reverse("news:" + route, args=[self.article.pk]), self.payload
+                    reverse("news:" + route, args=[self.article.pk]),
+                    self.payload,
                 ).status_code,
                 403,
             )
@@ -134,7 +138,8 @@ class RoleWorkflowTests(TestCase):
         unrelated = Publisher.objects.create(name="Unrelated")
         self.client.force_login(self.users["journalist"])
         response = self.client.post(
-            reverse("news:article_create"), {**self.payload, "publisher": unrelated.pk}
+            reverse("news:article_create"),
+            {**self.payload, "publisher": unrelated.pk},
         )
         self.assertIn("publisher", response.context["form"].errors)
 
@@ -153,7 +158,8 @@ class RoleWorkflowTests(TestCase):
         for route in ("add_comment", "toggle_save"):
             self.assertEqual(
                 self.client.post(
-                    reverse("news:" + route, args=[self.article.pk]), {"body": "Hidden"}
+                    reverse("news:" + route, args=[self.article.pk]),
+                    {"body": "Hidden"},
                 ).status_code,
                 404,
             )
@@ -189,7 +195,9 @@ class RoleWorkflowTests(TestCase):
         self.client.post(url)
         self.assertEqual(len(mail.outbox), 2)
         self.client.logout()
-        self.assertContains(self.client.get(reverse("news:home")), self.article.title)
+        self.assertContains(
+            self.client.get(reverse("news:home")), self.article.title
+        )
 
     def test_smtp_failure_preserves_approval_and_can_be_retried(self):
         """Keep failed notifications queued without duplicating successful mail."""
@@ -197,7 +205,8 @@ class RoleWorkflowTests(TestCase):
         self.client.force_login(self.users["editor"])
         url = reverse("news:approve_article", args=[self.article.pk])
         with patch(
-            "django.core.mail.send_mail", side_effect=SMTPException("Unavailable")
+            "django.core.mail.send_mail",
+            side_effect=SMTPException("Unavailable"),
         ):
             response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
@@ -213,7 +222,9 @@ class RoleWorkflowTests(TestCase):
         self.users["reader"].profile.journalists.add(self.users["journalist"])
         self.client.force_login(self.users["editor"])
         url = reverse("news:approve_article", args=[self.article.pk])
-        with patch("django.core.mail.send_mail", side_effect=OSError("Offline")):
+        with patch(
+            "django.core.mail.send_mail", side_effect=OSError("Offline")
+        ):
             self.client.post(url)
         self.users["reader"].profile.journalists.clear()
         self.client.post(url)
@@ -225,7 +236,8 @@ class RoleWorkflowTests(TestCase):
         self.article.save()
         self.client.force_login(self.users["journalist"])
         self.client.post(
-            reverse("news:article_update", args=[self.article.pk]), self.payload
+            reverse("news:article_update", args=[self.article.pk]),
+            self.payload,
         )
         self.article.refresh_from_db()
         self.assertFalse(self.article.approved)
@@ -234,15 +246,20 @@ class RoleWorkflowTests(TestCase):
     def test_editor_can_manage_content_but_cannot_submit(self):
         """Give editors review, edit and delete access without journalist authorship."""
         self.client.force_login(self.users["editor"])
-        self.assertEqual(self.client.get(reverse("news:dashboard")).status_code, 200)
+        self.assertEqual(
+            self.client.get(reverse("news:dashboard")).status_code, 200
+        )
         self.assertEqual(
             self.client.post(
-                reverse("news:article_update", args=[self.article.pk]), self.payload
+                reverse("news:article_update", args=[self.article.pk]),
+                self.payload,
             ).status_code,
             302,
         )
         self.assertEqual(
-            self.client.post(reverse("news:article_create"), self.payload).status_code,
+            self.client.post(
+                reverse("news:article_create"), self.payload
+            ).status_code,
             403,
         )
         self.assertEqual(
@@ -271,9 +288,12 @@ class RoleWorkflowTests(TestCase):
         self.assertEqual(self.users["reader"].profile.role, "reader")
         self.assertTrue(self.users["reader"].profile.publishers.exists())
         self.client.force_login(self.users["journalist"])
-        self.assertContains(self.client.get(reverse("news:home")), "Submit article")
+        self.assertContains(
+            self.client.get(reverse("news:home")), "Submit article"
+        )
         self.assertEqual(
-            self.client.post(reverse("news:subscriptions"), {}).status_code, 403
+            self.client.post(reverse("news:subscriptions"), {}).status_code,
+            403,
         )
 
     def test_mutations_require_post(self):

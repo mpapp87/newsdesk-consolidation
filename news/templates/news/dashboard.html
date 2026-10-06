@@ -1,4 +1,13 @@
 {% extends 'base.html' %}
-{% block content %}<h1>{% if is_editor %}Editorial review{% else %}My submissions{% endif %}</h1>
-{% for article in articles %}<article class="card"><h2><a href="{{ article.get_absolute_url }}">{{ article.title }}</a></h2><p>By {{ article.author }} · {% if article.approved %}Approved{% else %}Awaiting approval{% endif %}</p></article>{% empty %}<p>No submissions yet.</p>{% endfor %}
+{% block content %}
+<h1>{% if is_editor %}Publisher review queue{% else %}My submissions{% endif %}</h1>
+<p>Open an article to read it, edit or delete it, and publish when it is ready.</p>
+{% if is_editor %}<p>Only submissions to your publishers appear here. <a href="{% url 'news:publishers' %}">Manage publishers and journalists</a>.</p>{% endif %}
+{% for article in articles %}
+<article class="card">
+<h2><a style="text-decoration:underline" href="{{ article.get_absolute_url }}">{{ article.title }}</a></h2>
+<p>By {{ article.author }} · {% if article.approved %}Published{% elif article.publisher_id %}Awaiting publisher editor approval{% else %}Independent draft — ready for you to publish{% endif %}</p>
+<a class="button" href="{{ article.get_absolute_url }}">Open article and actions</a>
+</article>
+{% empty %}<p>No submissions yet.</p>{% endfor %}
 {% endblock %}

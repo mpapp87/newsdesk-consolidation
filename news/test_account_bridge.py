@@ -38,7 +38,7 @@ class AccountBridgeTests(SimpleTestCase):
                     "-c",
                     "from django.contrib.auth import get_user_model; from news.models import Profile, Article; u=get_user_model().objects.create_user('legacy', password='LegacyPass321!'); Profile.objects.create(user=u, role='journalist'); Article.objects.create(title='Keep me', body='Saved content', author=u)",
                 ],
-                ["migrate", "accounts", "--settings=bridge_settings", "--noinput"],
+                ["migrate", "accounts", "0001", "--settings=bridge_settings", "--noinput"],
                 ["migrate", "--settings=new_settings", "--noinput"],
                 [
                     "shell",

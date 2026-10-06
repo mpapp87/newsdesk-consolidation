@@ -8,7 +8,7 @@ from django.urls import reverse
 
 
 class Publisher(models.Model):
-    """Represent a news organization whose membership is managed by an admin."""
+    """Represent a news organization managed by its editors in the application."""
 
     name = models.CharField(max_length=200, unique=True)
     editors = models.ManyToManyField(
@@ -55,7 +55,7 @@ class Profile(models.Model):
 
 
 class Article(models.Model):
-    """Store a journalist's draft and its editor-controlled approval state."""
+    """Store a draft published by its publisher editor or independent author."""
 
     CATEGORY_CHOICES = [
         ("world", "World"),

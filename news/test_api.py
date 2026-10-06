@@ -45,10 +45,16 @@ class NewsAPITests(TestCase):
             approved=True,
         )
         self.draft = Article.objects.create(
-            title="Draft", body="Hidden", author=self.users["writer"]
+            title="Draft",
+            body="Hidden",
+            author=self.users["writer"],
+            publisher=self.publisher,
         )
         self.unrelated = Article.objects.create(
-            title="Other", body="Other", author=self.users["other"], approved=True
+            title="Other",
+            body="Other",
+            author=self.users["other"],
+            approved=True,
         )
         self.payload = {
             "title": "New story",
@@ -87,22 +93,31 @@ class NewsAPITests(TestCase):
         profile.journalists.add(self.users["writer"])
         profile.publishers.add(self.publisher)
         response = self.client.get("/api/articles/subscribed/?user=999")
-        self.assertEqual([item["id"] for item in response.data], [self.story.pk])
+        self.assertEqual(
+            [item["id"] for item in response.data], [self.story.pk]
+        )
         self.assertNotIn("email", response.data[0]["author"])
         self.authenticate("writer")
-        self.assertEqual(self.client.get("/api/articles/subscribed/").status_code, 403)
+        self.assertEqual(
+            self.client.get("/api/articles/subscribed/").status_code, 403
+        )
 
     def test_only_journalists_create_and_cannot_spoof_approval(self):
         """Keep submitted authorship and approval flags under server control."""
         for role in ("reader", "editor"):
             self.authenticate(role)
             self.assertEqual(
-                self.client.post("/api/articles/", self.payload).status_code, 403
+                self.client.post("/api/articles/", self.payload).status_code,
+                403,
             )
         self.authenticate("writer")
         response = self.client.post(
             "/api/articles/",
-            {**self.payload, "approved": True, "author": self.users["other"].pk},
+            {
+                **self.payload,
+                "approved": True,
+                "author": self.users["other"].pk,
+            },
         )
         self.assertEqual(response.status_code, 201)
         story = Article.objects.get(pk=response.data["id"])
@@ -132,7 +147,10 @@ class NewsAPITests(TestCase):
                 403,
             )
             self.assertEqual(
-                self.client.delete(f"/api/articles/{self.story.pk}/").status_code, 403
+                self.client.delete(
+                    f"/api/articles/{self.story.pk}/"
+                ).status_code,
+                403,
             )
         self.authenticate("writer")
         self.assertEqual(
@@ -145,7 +163,8 @@ class NewsAPITests(TestCase):
         self.assertFalse(self.story.approved)
         self.authenticate("editor")
         self.assertEqual(
-            self.client.delete(f"/api/articles/{self.story.pk}/").status_code, 204
+            self.client.delete(f"/api/articles/{self.story.pk}/").status_code,
+            204,
         )
 
     @patch("news.services.requests.post")
@@ -160,16 +179,21 @@ class NewsAPITests(TestCase):
         for role in ("reader", "writer"):
             self.authenticate(role)
             self.assertEqual(
-                self.client.post(f"/api/articles/{self.draft.pk}/approve/").status_code,
+                self.client.post(
+                    f"/api/articles/{self.draft.pk}/approve/"
+                ).status_code,
                 403,
             )
         self.authenticate("editor")
         response = self.client.post(f"/api/articles/{self.draft.pk}/approve/")
         self.assertTrue(response.data["api_logged"])
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(post.call_args.kwargs["json"], {"article_id": self.draft.pk})
         self.assertEqual(
-            post.call_args.kwargs["headers"], {"X-Approval-Key": "test-service-key"}
+            post.call_args.kwargs["json"], {"article_id": self.draft.pk}
+        )
+        self.assertEqual(
+            post.call_args.kwargs["headers"],
+            {"X-Approval-Key": "test-service-key"},
         )
         self.client.post(f"/api/articles/{self.draft.pk}/approve/")
         self.assertEqual(len(mail.outbox), 1)
@@ -203,10 +227,14 @@ class NewsAPITests(TestCase):
         )
         for bad in ("wrong", True, -1):
             self.assertEqual(
-                self.client.post(url, {"article_id": bad}, format="json").status_code,
+                self.client.post(
+                    url, {"article_id": bad}, format="json"
+                ).status_code,
                 400,
             )
-        self.assertEqual(self.client.post(url, [], format="json").status_code, 400)
+        self.assertEqual(
+            self.client.post(url, [], format="json").status_code, 400
+        )
         self.assertEqual(
             self.client.post(
                 url, {"article_id": self.story.pk}, format="json"
@@ -230,7 +258,9 @@ class NewsAPITests(TestCase):
         }
         self.authenticate("reader")
         self.assertEqual(
-            self.client.post("/api/newsletters/", payload, format="json").status_code,
+            self.client.post(
+                "/api/newsletters/", payload, format="json"
+            ).status_code,
             403,
         )
         self.authenticate("writer")
@@ -242,7 +272,9 @@ class NewsAPITests(TestCase):
             ).status_code,
             400,
         )
-        response = self.client.post("/api/newsletters/", payload, format="json")
+        response = self.client.post(
+            "/api/newsletters/", payload, format="json"
+        )
         self.assertEqual(response.status_code, 201)
         pk = response.data["id"]
         for role in ("reader", "other"):
@@ -269,7 +301,9 @@ class NewsAPITests(TestCase):
             ).status_code,
             200,
         )
-        self.assertEqual(self.client.delete(f"/api/newsletters/{pk}/").status_code, 204)
+        self.assertEqual(
+            self.client.delete(f"/api/newsletters/{pk}/").status_code, 204
+        )
         self.assertFalse(Newsletter.objects.filter(pk=pk).exists())
 
     def test_newsletter_html_journey(self):
@@ -290,7 +324,10 @@ class NewsAPITests(TestCase):
         )
         self.client.force_login(self.users["reader"])
         self.assertEqual(
-            self.client.post(f"/newsletters/{newsletter.pk}/edit/", {}).status_code, 403
+            self.client.post(
+                f"/newsletters/{newsletter.pk}/edit/", {}
+            ).status_code,
+            403,
         )
         self.client.force_login(self.users["editor"])
         self.assertEqual(
@@ -305,7 +342,10 @@ class NewsAPITests(TestCase):
             302,
         )
         self.assertEqual(
-            self.client.post(f"/newsletters/{newsletter.pk}/delete/").status_code, 302
+            self.client.post(
+                f"/newsletters/{newsletter.pk}/delete/"
+            ).status_code,
+            302,
         )
 
     def test_groups_and_custom_user_relationships_follow_roles(self):

@@ -15,6 +15,15 @@ class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
     role = forms.ChoiceField(choices=Profile.ROLE_CHOICES)
 
+    def clean_email(self):
+        """Reject case-insensitive duplicates before creating an account."""
+        email = self.cleaned_data["email"].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(
+                "An account with this email already exists."
+            )
+        return email
+
     class Meta:
         """Expose only public registration fields, never staff privileges."""
 
@@ -25,7 +34,9 @@ class RegisterForm(UserCreationForm):
     def save(self, commit=True):
         """Save the account and role together; reject deferred profile creation."""
         if not commit:
-            raise ValueError("RegisterForm must save the account and profile together.")
+            raise ValueError(
+                "RegisterForm must save the account and profile together."
+            )
         user = super().save(commit=True)
         Profile.objects.create(user=user, role=self.cleaned_data["role"])
         return user
@@ -38,7 +49,14 @@ class ArticleForm(forms.ModelForm):
         """Define editable content and a readable body input."""
 
         model = Article
-        fields = ("title", "summary", "body", "source_url", "category", "publisher")
+        fields = (
+            "title",
+            "summary",
+            "body",
+            "source_url",
+            "category",
+            "publisher",
+        )
         widgets = {"body": forms.Textarea(attrs={"rows": 10})}
 
     def __init__(self, *args, author=None, **kwargs):
@@ -90,12 +108,33 @@ class NewsletterForm(forms.ModelForm):
     def __init__(self, *args, author=None, **kwargs):
         """Offer approved articles and publishers appropriate to the author role."""
         super().__init__(*args, **kwargs)
-        self.fields["articles"].queryset = Article.objects.filter(approved=True)
+        self.fields["articles"].queryset = Article.objects.filter(
+            approved=True
+        )
         if author and getattr(author, "role", None) == "editor":
-            self.fields["publisher"].queryset = Publisher.objects.filter(editors=author)
+            self.fields["publisher"].queryset = Publisher.objects.filter(
+                editors=author
+            )
         else:
             self.fields["publisher"].queryset = (
                 Publisher.objects.filter(journalists=author)
                 if author
                 else Publisher.objects.none()
             )
+
+
+class PublisherForm(forms.ModelForm):
+    """Let an editor create an organization and select registered journalists."""
+
+    class Meta:
+        """Keep editor ownership controlled by the authenticated view."""
+
+        model = Publisher
+        fields = ("name", "journalists")
+
+    def __init__(self, *args, **kwargs):
+        """List only active journalists, never readers or editors."""
+        super().__init__(*args, **kwargs)
+        self.fields["journalists"].queryset = User.objects.filter(
+            is_active=True, profile__role="journalist"
+        ).order_by("username")

@@ -10,6 +10,7 @@
 <span>{{ user.username }} · {{ user.profile.get_role_display|default:'No role assigned' }}</span>
 {% if is_journalist %}<a href="{% url 'news:article_create' %}">Submit article</a>{% endif %}
 {% if is_journalist or is_editor %}<a href="{% url 'news:dashboard' %}">Newsroom</a>{% endif %}
+{% if is_editor %}<a href="{% url 'news:publishers' %}">Publishers</a>{% endif %}
 {% if is_reader %}<a href="{% url 'news:saved_articles' %}">Saved</a><a href="{% url 'news:subscriptions' %}">Subscriptions</a>{% endif %}
 <form class="inline" method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="linkbtn">Log out</button></form>
 {% else %}<a href="{% url 'login' %}">Log in</a><a href="{% url 'news:register' %}">Register</a>{% endif %}

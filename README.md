@@ -1,11 +1,16 @@
 # NewsDesk — M07T05 Consolidation Capstone
 
-This consolidation is based on the **M06T08 News Application**, which Michael
-confirmed had passed review on 6 October 2026. The earlier sticky-notes additions
-are not the basis of this project. The application was imported from the coursework
-repository, then enhanced through the required local `docs` and `container` branches.
-Both branches are retained and merged into `main`; each of the three documented
-Python scripts has its own commit on `docs`.
+This consolidation includes the updated M06T08 News Application from
+[newsdesk-app](https://github.com/mpapp87/newsdesk-app), source commit
+`0f69ebafb03a977c095b55985d06a1d858d530fa`.
+It includes editor-managed publishers, unique registration emails, independent
+author publication, clearer newsroom actions and article-level subscriptions.
+
+The original local Git history, separate per-script documentation commits,
+`docs` and `container` branches, Docker configuration and generated Sphinx HTML
+are preserved. The application has been synchronized and the documentation rebuilt.
+This preparation does not establish a successful course review of the updated News
+Application; obtain that review before requesting the consolidation review.
 
 ## Quick start with Docker — independent setup
 
@@ -23,6 +28,7 @@ docker compose version
 ```
 
 If `docker info` cannot connect, start Docker and resolve that error before continuing.
+
 4. Clone this repository and enter the new checkout:
 
 ```sh
@@ -32,6 +38,7 @@ cp .env.docker.example .env
 ```
 
 Windows PowerShell users can use `Copy-Item .env.docker.example .env`.
+
 5. Generate four independent private values by running the following Docker command four
 times, then paste them into `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `DB_ROOT_PASSWORD`,
 and `APPROVAL_API_KEY` in `.env`:
@@ -41,16 +48,17 @@ docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_
 ```
 
 Do not use the placeholder values. `.env` is excluded from Git and Docker builds.
+
 6. Build and start the services. No host Python or manually installed database is needed:
 
 ```sh
 docker compose up --build -d
-docker compose exec web python manage.py createsuperuser
 ```
 
 Open <http://localhost:8000>. MariaDB starts first, then Django applies migrations
-and starts the threaded development server. Register normal role accounts at
-`/register/`. Inspect logs with `docker compose logs db web`. Stop using
+and starts the threaded development server. Register Reader, Journalist and Editor accounts at
+`/register/`. Editors create publishers through **Publishers**. An optional
+maintenance account can be created with `docker compose exec web python manage.py createsuperuser`; it is not required for publishing. Inspect logs with `docker compose logs db web`. Stop using
 `docker compose down`; the named database volume persists. Do not add `-v` unless
 intentionally deleting the database. If you change database passwords after the
 first run, update the database account as well; changing `.env` alone does not
@@ -66,13 +74,6 @@ testing real delivery. The approval callback works internally at
 This is a local development demonstration, bound to localhost, using debug mode.
 A public deployment requires a production server, HTTPS, static-file hosting,
 restricted host names, and verified editor accounts.
-
-## News Application review dependency
-
-The latest M06T08 review corrections are in https://github.com/mpapp87/newsdesk-app.
-This consolidation snapshot predates those corrections. After the corrected News
-Application receives a successful review, synchronize that reviewed application
-into this consolidation and rebuild its documentation before requesting M07T05 review.
 
 ## Consolidation documentation and verification
 
@@ -97,56 +98,56 @@ response and migrations, runs the test suite against MariaDB, and builds Sphinx.
 It generates disposable secrets at runtime and does not send real email.
 See the repository's Actions tab for the actual run result.
 
-The native virtual-environment setup and full application guide follow below.
+## Application workflow
 
-A Django news application with reader, journalist and editor roles, editorial approval, newsletters, subscriptions, token-authenticated APIs and email notifications. It uses **MySQL or MariaDB** for normal operation.
+- Register with a unique email and choose Reader, Journalist or Editor. Email
+  matching ignores case and surrounding whitespace. No role gets Django staff access.
+- Editors open **Publishers**, create an organization and select its registered
+  journalists. They can later rename it and update its journalist membership.
+  Each editor manages only their own publishers. Django admin is for maintenance.
+- Journalists select one of their publishers when submitting a story, or leave
+  Publisher blank for independent work. Publisher submissions require an editor
+  belonging to that publisher; unrelated editors cannot manage or approve them.
+- Independent work is saved as a private draft. Its author chooses **Publish article**
+  when ready, with no editor approval. Editing published content makes it a draft
+  again; the independent author republishes, or the publisher editor approves it.
+- **Newsroom** has underlined headlines and an explicit **Open article and actions**
+  link. Article pages expose the permitted Edit, Delete and Publish actions.
+- Readers subscribe through **Subscriptions** or directly on a published article.
+  They can follow its journalist, its publisher, or both; notification recipients
+  are deduplicated. Article subscription buttons also allow unsubscribing.
+- Successful publication does not display a retry button once email processing
+  and API logging have completed. **Retry pending delivery** appears only when
+  an email remains unsent or the publication log has not been recorded.
+- Readers can comment and save published stories. Journalists and editors curate
+  newsletters; drafts are excluded from reader-visible newsletter content.
 
-The full [requirements and design checklist](docs/requirements.md) maps this submission to the task brief.
+## Review walkthrough
 
-## What changed for resubmission
+1. Register an Editor and a Journalist in separate browser sessions.
+2. As Editor, open Publishers and create an organization with that Journalist.
+3. Register a Reader with a different email, and subscribe to the Journalist or
+   Publisher through Subscriptions.
+4. As Journalist, save a publisher story. As its Editor, open Newsroom and approve
+   it. Verify the Reader can now see it and the configured mail backend receives
+   the notification. An unrelated Editor must not see the publisher draft.
+5. As Journalist, save another story with no Publisher. Open it and click Publish
+   article. It should be visible immediately without involving an Editor.
+6. As Reader, subscribe or unsubscribe directly on either published article.
+7. Attempt registration with an existing email in different letter case; the form
+   should reject it without creating another account.
 
-- News templates live in `news/templates/news/`. Shared layout and registration/login templates remain in the project-level `templates/` directory.
-- Every project class, method and function has a docstring, following [PEP 257](https://peps.python.org/pep-0257/). Sphinx extracts the application reference from these docstrings.
-- MySQL/MariaDB replaces SQLite in the normal settings. `mysqlclient` is a required dependency.
-- SMTP settings come from environment variables. Approved articles email subscribed readers, with a retry path for delivery failures.
-- Registration requires a role, synchronizes Django permission groups, and enforces permissions in HTML and API views.
-- A compatible custom User preserves existing accounts. Newsletters, all required article API endpoints, DRF serializers and the Requests-based approval API integration are included.
+## Manual setup with a virtual environment — independent setup
 
-## Roles and publication workflow
+Use this route instead of Docker. Install Git and Python 3.12, then clone the project:
 
-| Role | Permissions |
-| --- | --- |
-| Reader | Read approved articles and newsletters, comment, save stories, subscribe to journalists and publishers. |
-| Journalist | Submit articles, view own drafts, edit/delete own articles. Create/edit/delete own newsletters. Cannot approve articles or edit another journalist's work. |
-| Editor | View all submissions, edit/delete articles, approve publication and retry failed email deliveries. Create newsletters and manage all newsletters. Cannot submit articles as a journalist. |
-
-All visitors can browse approved articles and search external headlines. Drafts are visible only to their journalist and editors. Editing any approved story returns it to the review queue. Readers cannot fetch draft details, bookmark them or comment on them by posting a URL directly.
-
-**Publishers are organizations, not login accounts.** A Django administrator creates publishers and assigns journalist and editor members through `/admin/`. A journalist can select only a publisher they belong to, or leave it blank to write independently. Editors review all publishers and independent submissions in this capstone.
-
-For the assessed registration workflow, users can choose any of the three roles, including editor. This does not grant Django staff or superuser status. A public production deployment should add editorial staff verification before allowing self-selected editor privileges.
-
-### Try the complete journey
-
-1. Register separate Reader, Journalist and Editor accounts (use different browser sessions or log out between them).
-2. As a reader, open **Subscriptions**, choose a journalist and/or publisher, and save. Supply a working email when registering.
-3. As a journalist, choose **Submit article**. The submission appears in **Newsroom**, but not the public feed.
-4. As an editor, open **Newsroom**, open the draft, then choose **Approve and notify readers**.
-5. The article appears publicly. Each matching reader receives a separate email containing the summary and article link. Following both its author and publisher does not duplicate that reader's notification.
-6. If SMTP fails, approval remains saved and the page reports the failure. Fix SMTP configuration, restart the app, then choose **Retry email/API delivery** on that article as an editor.
-
-Notifications are tracked once per article and reader; reapproval after editing does not resend to readers already notified. Unsubscribed or inactive readers are skipped on retry. As with ordinary SMTP delivery, a process crash after mail is accepted but before its database update can result in a duplicate; this is not an exactly-once mail transport.
-
-## Get this project
-
-Clone the public consolidation repository:
-
-```bash
+```sh
 git clone https://github.com/mpapp87/newsdesk-consolidation.git
 cd newsdesk-consolidation
 ```
 
-For a GitHub ZIP download, extract it and open the directory containing `manage.py`.
+If this repository is already cloned, enter that existing checkout instead.
+The following steps install a local database and Python environment.
 
 ## Setup: Python and dependencies
 
@@ -170,7 +171,7 @@ Install MySQL client build prerequisites **before** installing requirements:
 python -m pip install -r requirements.txt
 ```
 
-Django 5.2 supports MySQL 8.0.11+ and MariaDB 10.5+. This consolidation repository's automated checks run against MariaDB 10.11. See [Django database notes](https://docs.djangoproject.com/en/5.2/ref/databases/).
+Django 5.2 supports MySQL 8.0.11+ and MariaDB 10.5+. This repository's automated checks run against MariaDB 10.11. See [Django database notes](https://docs.djangoproject.com/en/5.2/ref/databases/).
 
 ## Create the database
 
@@ -270,16 +271,17 @@ and HTTPS for both external clients and the approval receiver.
 
 ## Apply migrations and start
 
-For an existing database, follow **Updating an existing installation** below first.
+For an existing database, follow **Updating an existing installation** below first. The new email migration stops if duplicate addresses exist: correct those account emails through Django admin maintenance, then rerun migration. It never deletes or merges accounts. Empty legacy emails remain allowed, but registration always requires a unique nonempty address.
 For a fresh database:
 
 ```bash
 python manage.py migrate
-python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000/`. Use `/register/` to create normal role accounts. The superuser administers publishers and profiles at `/admin/`; it does not automatically act as an editor in the newsroom. If needed, add an Editor profile for that account in administration.
+Open `http://127.0.0.1:8000/`. Use `/register/` to create normal role accounts. Register Editor and Journalist accounts through `/register/`. Editors create publishers and manage journalist membership through **Publishers** in the main navigation. Django admin is only for maintenance; it is not needed for application workflows.
+
+For optional maintenance access, create a superuser with `python manage.py createsuperuser`. Normal publishing does not require this account.
 
 ### Updating an existing installation
 
@@ -287,7 +289,7 @@ Back up the old database first. **For an existing installation created with
 Django's built-in `auth.User`, run this bridge command before any normal migration:**
 
 ```bash
-python manage.py migrate accounts --settings=news_project.legacy_upgrade_settings
+python manage.py migrate accounts 0001 --settings=news_project.legacy_upgrade_settings
 python manage.py migrate
 ```
 
@@ -296,7 +298,7 @@ active, reusing the existing `auth_user`, group and permission join tables. It d
 not copy passwords or renumber accounts. Do not fake migrations or delete tables.
 New installations use normal `python manage.py migrate` and do not need the bridge.
 A legacy `auth.user` fixture should be imported while using the legacy settings;
-then run the bridge and normal migrations. These migrations retain articles, comments and bookmarks. Existing authors receive the Journalist role; other existing accounts receive Reader. Old articles enter the approval queue so they must be reviewed by an editor before appearing publicly. Administrators can change profiles explicitly.
+then run the bridge and normal migrations. These migrations retain articles, comments and bookmarks. Existing authors receive the Journalist role; other existing accounts receive Reader. Old articles become drafts; independent authors publish their own, while publisher editors approve publisher submissions. Administrators can change profiles explicitly.
 
 Changing database settings does not transfer an existing SQLite file. If it contains data you need, use the **previous version and its SQLite configuration** to export before switching:
 
@@ -310,111 +312,54 @@ Keep this backup private. On the new MySQL installation, migrate only to the old
 python manage.py migrate auth --settings=news_project.legacy_upgrade_settings
 python manage.py migrate news 0001 --settings=news_project.legacy_upgrade_settings
 python manage.py loaddata /path/to/newsdesk-backup.json --settings=news_project.legacy_upgrade_settings
-python manage.py migrate accounts --settings=news_project.legacy_upgrade_settings
+python manage.py migrate accounts 0001 --settings=news_project.legacy_upgrade_settings
 python manage.py migrate
 ```
 
 If you already migrated before importing an old fixture, assign profiles for the imported users in Django admin. No SQLite export is necessary for a fresh installation.
 
-## Tests and documentation
+## Tests
 
-With MySQL/MariaDB running and test database privileges granted:
+With MariaDB running and the test database grant from the setup above:
 
-```bash
+```sh
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test
+python manage.py test --noinput
 ```
 
-A separate, explicit test-only SQLite configuration is available for fast unit tests on machines without a database server:
+For an isolated unit test run without a database server:
 
-```bash
-python manage.py test --settings=news_project.test_settings
+```sh
+python manage.py test --settings=news_project.test_settings --noinput
 ```
 
-This does not change normal startup or replace the MySQL/MariaDB assessment setup. Tests also cover token authentication, API role permissions, newsletter CRUD, subscription feed isolation, approval POST authentication and idempotency. Tests cover registration for all roles, ownership and access denial, draft visibility, approval, subscriptions, private deduplicated notifications, SMTP failures/retries, template placement, browsing, comments, bookmarks and the mocked external API.
+The SQLite setting is test-only. Normal operation uses MySQL/MariaDB. Tests cover
+publisher creation and ownership, email uniqueness, independent and publisher
+publication, access denial, notifications and retry state, subscriptions, API
+permissions, newsletters and legacy migrations. External SMTP/HTTP is mocked in
+unit tests; test success does not assert real email delivery.
 
-Build the Sphinx reference:
+## API
 
-```bash
-python -m pip install -r requirements-docs.txt
-python -m sphinx -W --keep-going -b html docs docs/_build/html
-```
+Obtain a token with `POST /api/token/` using your username and password. Send
+`Authorization: Token <your-private-token>` in subsequent API requests.
+Never commit a token or password.
 
-Open `docs/_build/html/index.html`. The documentation configuration initializes Django with test settings to import models without a live database.
-
-## Structure and routes
-
-```text
-accounts/               compatible custom User and its bridge migration
-news_project/           project settings and root URLs
-news/                   models, forms, role checks, views, services, tests
-news/migrations/        schema and existing-account role migrations
-news/templates/news/    application-owned news templates
-news/static/news/       custom stylesheet
-templates/base.html     shared site layout
-templates/registration/ login and registration templates
-docs/                   Sphinx configuration and reference source
-```
-
-Main routes: `/`, `/register/`, `/accounts/login/`, `/dashboard/`, `/article/new/`, `/article/<id>/`, `/subscriptions/`, `/saved/`, `/external/`, `/admin/`. API routes and newsletter routes are listed below. State-changing approval, comment, bookmark and logout actions require POST and CSRF tokens. The external headlines service uses the Hacker News Algolia API with a timeout and graceful error handling.
-
-For deployment, set a private `DJANGO_SECRET_KEY`, set `DJANGO_DEBUG=false`, configure `DJANGO_ALLOWED_HOSTS`, use HTTPS, and serve collected static files with an appropriate server. Never commit databases, email passwords or exported account fixtures.
-
-
-## REST API walkthrough
-
-Register accounts in the browser first. API clients must obtain a token using
-`POST /api/token/` with `username` and `password`. On macOS/Linux, this command
-prompts privately for the password and prints the returned token (keep it private):
-
-```bash
-read -r -p "Username: " NEWS_USER
-read -r -s -p "Password: " NEWS_PASSWORD; echo
-curl -sS -X POST http://127.0.0.1:8000/api/token/ --data-urlencode "username=$NEWS_USER" --data-urlencode "password=$NEWS_PASSWORD"
-unset NEWS_PASSWORD
-```
-
-The above prompts use Bash (`bash` first if needed). Paste the returned token into
-an environment variable without saving it to your repository:
-
-```bash
-read -r -s -p "API token: " NEWS_TOKEN; echo
-curl -H "Authorization: Token $NEWS_TOKEN" http://127.0.0.1:8000/api/articles/
-```
-
-| Method | Endpoint | Role / behavior |
+| Method | Path | Use |
 | --- | --- | --- |
-| GET / POST | `/api/articles/` | All roles list approved articles; only journalists create drafts. |
-| GET | `/api/articles/subscribed/` | Current reader's followed journalists/publishers, approved only. |
-| GET / PUT / PATCH / DELETE | `/api/articles/<id>/` | Read visible stories; owning journalist/editor edits or deletes. |
-| POST | `/api/articles/<id>/approve/` | Editors only; email subscribers and log via Requests. |
-| POST | `/api/approved/` | Service key required; idempotent receipt for an approved article. |
-| GET / POST | `/api/newsletters/` | Read newsletters; journalists/editors create. |
-| GET / PUT / PATCH / DELETE | `/api/newsletters/<id>/` | Read; owning journalist/editor manages. |
-| GET | `/api/publishers/` | Authenticated roles retrieve organizations and memberships. |
+| GET / POST | `/api/articles/` | List published stories; journalists create drafts |
+| GET | `/api/articles/subscribed/` | Current reader's subscription feed |
+| GET / PUT / PATCH / DELETE | `/api/articles/<id>/` | Read or manage permitted stories |
+| POST | `/api/articles/<id>/approve/` | Publisher editor approves, or independent author publishes |
+| POST | `/api/approved/` | Service-key protected, idempotent publication receipt |
+| GET / POST | `/api/newsletters/` | Read or create newsletters |
+| GET / PUT / PATCH / DELETE | `/api/newsletters/<id>/` | Read or manage newsletters |
+| GET | `/api/publishers/` | Read publisher identities and membership |
 
-Create a draft using a journalist token:
+The approval URL is retained for existing API clients and applies both publication
+rules. Clients cannot spoof author or approval flags when creating/editing articles.
+Publication sends queued notifications and calls the receiver through Requests.
+Retries do not resend completed reader notifications. A crash after SMTP accepts
+mail but before recording its result can still cause a duplicate.
 
-```bash
-curl -X POST http://127.0.0.1:8000/api/articles/ -H "Authorization: Token $NEWS_TOKEN" -H 'Content-Type: application/json' -d '{"title":"First report","summary":"Short overview","content":"Full report","category":"world"}'
-```
-
-Use the returned `id` in detail/update/delete/approval URLs. A reader POST returns
-403; missing or invalid tokens return 401; invalid content returns 400. Submitted
-`author` and `approved` values cannot grant ownership or approval. PUT/PATCH returns
-an approved article to draft. Readers still have access to all approved stories via
-`/api/articles/`; only the subscribed endpoint filters to their own follows.
-
-Newsletters can also be created and managed through **Newsletters** in the navbar.
-Choose approved articles and save. If an article returns to draft later, it disappears
-from the newsletter's reader view until approved again.
-
-## Final manual verification
-
-Use a working database and reader email. Subscribe a reader, submit as a journalist,
-and approve as an editor. Check the reader inbox/spam folder and verify that approval
-reports successful API logging (`api_logged: true` for API approval). Repeat approval:
-existing reader notifications and API receipts must not duplicate. Test a newsletter
-as a reader and confirm that reader edit/create requests are denied. Automated tests
-mock SMTP and HTTP; they do not claim that a real provider delivered a message.

@@ -11,8 +11,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Article, ApprovedArticleLog, Newsletter, Publisher
-from .roles import can_edit, has_role
-from .serializers import ArticleSerializer, NewsletterSerializer, PublisherSerializer
+from .roles import can_edit, can_publish, has_role
+from .serializers import (
+    ArticleSerializer,
+    NewsletterSerializer,
+    PublisherSerializer,
+)
 from .services import (
     queue_publication_emails,
     send_publication_emails,
@@ -26,7 +30,8 @@ class NewsRolePermission(permissions.BasePermission):
     def has_permission(self, request, view):
         """Require one of the three registered news roles."""
         return any(
-            has_role(request.user, role) for role in ("reader", "journalist", "editor")
+            has_role(request.user, role)
+            for role in ("reader", "journalist", "editor")
         )
 
 
@@ -89,7 +94,9 @@ class ArticleDetail(generics.RetrieveUpdateDestroyAPIView):
         with transaction.atomic():
             article = self.get_object()
             if not can_edit(request.user, article):
-                raise PermissionDenied("Only the author or an editor may edit.")
+                raise PermissionDenied(
+                    "Only the author or an editor may edit."
+                )
             locked = Article.objects.select_for_update().get(pk=article.pk)
             serializer = self.get_serializer(
                 locked, data=request.data, partial=kwargs.get("partial", False)
@@ -106,26 +113,38 @@ class ArticleDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ArticleApproval(APIView):
-    """Publish a draft as an editor and retry unsent external notifications."""
+    """Publish as a publisher editor or independent owner; retry pending delivery."""
 
     permission_classes = [NewsRolePermission]
 
     def post(self, request, pk):
         """Commit approval before sending email and calling the local REST API."""
-        if not has_role(request.user, "editor"):
-            raise PermissionDenied("Only editors can approve.")
         with transaction.atomic():
-            article = get_object_or_404(Article.objects.select_for_update(), pk=pk)
+            article = get_object_or_404(
+                Article.objects.select_for_update(), pk=pk
+            )
+            if not can_publish(request.user, article):
+                raise PermissionDenied(
+                    "Only this publisher's editors or the independent author may publish."
+                )
             if not article.approved:
                 article.approved = True
-                article.approved_by = request.user
+                article.approved_by = (
+                    request.user if article.publisher_id else None
+                )
                 article.approved_at = timezone.now()
-                article.save(update_fields=["approved", "approved_by", "approved_at"])
+                article.save(
+                    update_fields=["approved", "approved_by", "approved_at"]
+                )
                 queue_publication_emails(article)
         failures = send_publication_emails(article)
         posted = post_approved_article(article)
         return Response(
-            {"approved": True, "email_failures": failures, "api_logged": posted}
+            {
+                "approved": True,
+                "email_failures": failures,
+                "api_logged": posted,
+            }
         )
 
 
@@ -142,7 +161,9 @@ class ApprovedReceiver(APIView):
         if not expected or not secrets.compare_digest(expected, supplied):
             raise PermissionDenied("Invalid approval service credentials.")
         if not isinstance(request.data, dict):
-            return Response({"detail": "A JSON object is required."}, status=400)
+            return Response(
+                {"detail": "A JSON object is required."}, status=400
+            )
         pk = request.data.get("article_id")
         if isinstance(pk, bool) or not isinstance(pk, int) or pk <= 0:
             return Response(
@@ -151,7 +172,8 @@ class ApprovedReceiver(APIView):
         article = get_object_or_404(Article, pk=pk, approved=True)
         _, created = ApprovedArticleLog.objects.get_or_create(article=article)
         return Response(
-            {"article_id": article.pk, "logged": True}, status=201 if created else 200
+            {"article_id": article.pk, "logged": True},
+            status=201 if created else 200,
         )
 
 
@@ -167,7 +189,8 @@ class NewsletterList(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         """Reject reader writes before serializer validation."""
         if not (
-            has_role(request.user, "journalist") or has_role(request.user, "editor")
+            has_role(request.user, "journalist")
+            or has_role(request.user, "editor")
         ):
             raise PermissionDenied(
                 "Only journalists and editors can create newsletters."

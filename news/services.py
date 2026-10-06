@@ -6,15 +6,7 @@ HACKER_NEWS_API = "https://hn.algolia.com/api/v1/search"
 
 
 def fetch_external_news(query="technology", limit=10):
-    """Fetch normalized stories, returning an empty list on HTTP/JSON errors.
-
-    :param str query: Search terms, defaulting to technology.
-    :param int limit: Maximum number of requested results, defaulting to 10.
-    :return: Dictionaries containing title, url, author, and created_at.
-    :rtype: list[dict]
-
-    The request has a five-second timeout. Entries without a title are skipped.
-    """
+    """Return a normalized list of current stories from the Hacker News API."""
     try:
         response = requests.get(
             HACKER_NEWS_API,
@@ -56,6 +48,7 @@ def queue_publication_emails(article):
     readers = (
         Profile.objects.filter(sources, role="reader", user__is_active=True)
         .exclude(user__email="")
+        .exclude(user__email__isnull=True)
         .select_related("user")
         .distinct()
     )

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Manage publishers{% endblock %}
+{% block content %}
+<h1>Manage publishers</h1>
+<p>Create a publisher as its editor, then select registered journalists who may submit to it. No Django admin account is needed.</p>
+<h2>{% if publisher %}Edit {{ publisher.name }}{% else %}Create publisher{% endif %}</h2>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Save publisher</button></form>
+<h2>Your publishers</h2>
+<ul>{% for item in publishers %}<li><a href="{% url 'news:publisher_manage' item.pk %}">{{ item.name }} — manage journalists</a></li>{% empty %}<li>You have not created a publisher yet.</li>{% endfor %}</ul>
+{% if publisher %}<a class="button" href="{% url 'news:publishers' %}">Create another publisher</a>{% endif %}
+{% endblock %}

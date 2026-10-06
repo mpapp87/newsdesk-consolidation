@@ -1,22 +1,30 @@
-"""Provide the custom user model for NewsDesk authentication.
-
-The model reuses legacy account tables. Role and subscription state is stored
-on the related news profile, preserving existing accounts during consolidation.
-"""
+"""Extend Django users without replacing existing account tables or passwords."""
 
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 
 class User(AbstractUser):
     """Expose role-specific news relationships through a normalized profile.
 
-    Use ``get_user_model()`` to retrieve this class in application code.
-    The model does not grant editorial access merely because an account is staff.
-
     Reuse the original auth_user table so existing article ownership and password
     hashes remain valid. Reader subscription joins live on the one-to-one profile;
     empty/nonapplicable relationships are exposed as None for other roles.
     """
+
+    email = models.EmailField(
+        "email address", unique=True, null=True, blank=True
+    )
+
+    def clean(self):
+        """Use a consistent identity for email validation and storage."""
+        super().clean()
+        self.email = (self.email or "").strip().lower() or None
+
+    def save(self, *args, **kwargs):
+        """Normalize email on ordinary account writes, including manager creates."""
+        self.email = (self.email or "").strip().lower() or None
+        super().save(*args, **kwargs)
 
     class Meta(AbstractUser.Meta):
         """Reuse legacy tables and support the staged existing-database upgrade."""
@@ -26,11 +34,7 @@ class User(AbstractUser):
 
     @property
     def role(self):
-        """Read the profile role without creating or modifying a profile.
-
-        :return: The assigned role, or None for an account without a profile.
-        :rtype: str or None
-        """
+        """Return the assigned role, or None for an unassigned admin account."""
         profile = getattr(self, "profile", None)
         return profile.role if profile else None
 
