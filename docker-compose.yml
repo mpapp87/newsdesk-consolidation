@@ -1,0 +1,30 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_DATABASE: newsdesk
+      MARIADB_USER: newsdesk
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+    volumes:
+      - newsdesk_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  web:
+    build: .
+    env_file: .env
+    environment:
+      DB_NAME: newsdesk
+      DB_USER: newsdesk
+      DB_HOST: db
+      DB_PORT: "3306"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  newsdesk_data:

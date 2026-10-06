@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+.venv
+venv
+**/__pycache__
+**/*.pyc
+*.sqlite3
+*.sql
+*.sql.gz
+*.log
+staticfiles
+docs/_build
