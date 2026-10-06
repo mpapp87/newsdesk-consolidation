@@ -31,13 +31,10 @@
           <div class="body" role="main">
             
   <h1>Source code for accounts.models</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Provide the custom user model for NewsDesk authentication.</span>
-
-<span class="sd">The model reuses legacy account tables. Role and subscription state is stored</span>
-<span class="sd">on the related news profile, preserving existing accounts during consolidation.</span>
-<span class="sd">"""</span>
+<span></span><span class="sd">"""Extend Django users without replacing existing account tables or passwords."""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractUser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
 
 
 <div class="viewcode-block" id="User">
@@ -45,13 +42,30 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">User</span><span class="p">(</span><span class="n">AbstractUser</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Expose role-specific news relationships through a normalized profile.</span>
 
-<span class="sd">    Use ``get_user_model()`` to retrieve this class in application code.</span>
-<span class="sd">    The model does not grant editorial access merely because an account is staff.</span>
-
 <span class="sd">    Reuse the original auth_user table so existing article ownership and password</span>
 <span class="sd">    hashes remain valid. Reader subscription joins live on the one-to-one profile;</span>
 <span class="sd">    empty/nonapplicable relationships are exposed as None for other roles.</span>
 <span class="sd">    """</span>
+
+    <span class="n">email</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">EmailField</span><span class="p">(</span>
+        <span class="s2">"email address"</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="User.clean">
+<a class="viewcode-back" href="../../index.html#news.forms.User.clean">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Use a consistent identity for email validation and storage."""</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="User.save">
+<a class="viewcode-back" href="../../index.html#news.forms.User.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Normalize email on ordinary account writes, including manager creates."""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
 
     <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">(</span><span class="n">AbstractUser</span><span class="o">.</span><span class="n">Meta</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Reuse legacy tables and support the staged existing-database upgrade."""</span>
@@ -61,11 +75,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">role</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Read the profile role without creating or modifying a profile.</span>
-
-<span class="sd">        :return: The assigned role, or None for an account without a profile.</span>
-<span class="sd">        :rtype: str or None</span>
-<span class="sd">        """</span>
+<span class="w">        </span><span class="sd">"""Return the assigned role, or None for an unassigned admin account."""</span>
         <span class="n">profile</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"profile"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">profile</span><span class="o">.</span><span class="n">role</span> <span class="k">if</span> <span class="n">profile</span> <span class="k">else</span> <span class="kc">None</span>
 

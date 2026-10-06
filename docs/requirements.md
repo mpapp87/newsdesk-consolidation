@@ -1,10 +1,10 @@
-# Task 20 requirements and design
+# News Application requirements and design
 
 ## Functional requirements
 
 The application registers readers, journalists and editors; assigns Django groups;
 protects drafts; supports article and newsletter CRUD; stores publisher memberships;
-and lets readers subscribe to publishers and journalists. Editor approval queues
+and lets readers subscribe to publishers and journalists. Publisher-editor approval or independent-author publication queues
 private subscriber email and posts the article ID to `/api/approved/` with Requests.
 Token-authenticated clients can list approved articles, retrieve one, retrieve their
 own subscriptions, create as journalists, and update/delete as owners or editors.
@@ -25,12 +25,15 @@ one idempotent API receipt per article. Foreign keys preserve referential integr
 ## Access and UI design
 
 A shared navigation bar exposes Home, Newsletters, role-appropriate Newsroom or
-Subscriptions, and logout. Journalists submit drafts; editors approve from the
-newsroom. Readers see only approved article content, including inside newsletters.
+Subscriptions, and logout. Journalists save drafts; assigned publisher editors approve publisher stories
+from the newsroom, while independent authors publish their own drafts. Readers see only approved article content, including inside newsletters.
 Forms validate publisher membership. Role checks occur on the server as well as in
-menus. Publisher organizations are created by an administrator; they are not a
-fourth public login role. Editors can review across the application, while publisher
-editor membership records their organizational affiliations.
+menus. Publisher organizations are created and managed by their editors in the application.
+They are not a fourth login role. Unrelated editors cannot review or manage another
+publisher's drafts. Django admin remains a maintenance tool. Registration rejects
+case-insensitive duplicate emails and a database constraint protects concurrent writes.
+Readers can subscribe directly from articles, and retry controls appear only while
+notification delivery or publication logging is pending.
 
 ## Nonfunctional requirements
 

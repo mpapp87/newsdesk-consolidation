@@ -44,8 +44,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">rest_framework.response</span><span class="w"> </span><span class="kn">import</span> <span class="n">Response</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">rest_framework.views</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIView</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Article</span><span class="p">,</span> <span class="n">ApprovedArticleLog</span><span class="p">,</span> <span class="n">Newsletter</span><span class="p">,</span> <span class="n">Publisher</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.roles</span><span class="w"> </span><span class="kn">import</span> <span class="n">can_edit</span><span class="p">,</span> <span class="n">has_role</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">.serializers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArticleSerializer</span><span class="p">,</span> <span class="n">NewsletterSerializer</span><span class="p">,</span> <span class="n">PublisherSerializer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.roles</span><span class="w"> </span><span class="kn">import</span> <span class="n">can_edit</span><span class="p">,</span> <span class="n">can_publish</span><span class="p">,</span> <span class="n">has_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.serializers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ArticleSerializer</span><span class="p">,</span>
+    <span class="n">NewsletterSerializer</span><span class="p">,</span>
+    <span class="n">PublisherSerializer</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.services</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">queue_publication_emails</span><span class="p">,</span>
     <span class="n">send_publication_emails</span><span class="p">,</span>
@@ -63,7 +67,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">has_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">view</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Require one of the three registered news roles."""</span>
         <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">role</span><span class="p">)</span> <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"reader"</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span>
+            <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">role</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"reader"</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span>
         <span class="p">)</span></div>
 </div>
 
@@ -150,7 +155,9 @@
         <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
             <span class="n">article</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_object</span><span class="p">()</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">can_edit</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">article</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="n">PermissionDenied</span><span class="p">(</span><span class="s2">"Only the author or an editor may edit."</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">PermissionDenied</span><span class="p">(</span>
+                    <span class="s2">"Only the author or an editor may edit."</span>
+                <span class="p">)</span>
             <span class="n">locked</span> <span class="o">=</span> <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="n">article</span><span class="o">.</span><span class="n">pk</span><span class="p">)</span>
             <span class="n">serializer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_serializer</span><span class="p">(</span>
                 <span class="n">locked</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">partial</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"partial"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
@@ -174,7 +181,7 @@
 <div class="viewcode-block" id="ArticleApproval">
 <a class="viewcode-back" href="../../index.html#news.api.ArticleApproval">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ArticleApproval</span><span class="p">(</span><span class="n">APIView</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Publish a draft as an editor and retry unsent external notifications."""</span>
+<span class="w">    </span><span class="sd">"""Publish as a publisher editor or independent owner; retry pending delivery."""</span>
 
     <span class="n">permission_classes</span> <span class="o">=</span> <span class="p">[</span><span class="n">NewsRolePermission</span><span class="p">]</span>
 
@@ -182,20 +189,32 @@
 <a class="viewcode-back" href="../../index.html#news.api.ArticleApproval.post">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">pk</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Commit approval before sending email and calling the local REST API."""</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">PermissionDenied</span><span class="p">(</span><span class="s2">"Only editors can approve."</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
-            <span class="n">article</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span><span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">(),</span> <span class="n">pk</span><span class="o">=</span><span class="n">pk</span><span class="p">)</span>
+            <span class="n">article</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span>
+                <span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_for_update</span><span class="p">(),</span> <span class="n">pk</span><span class="o">=</span><span class="n">pk</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">can_publish</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">article</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">PermissionDenied</span><span class="p">(</span>
+                    <span class="s2">"Only this publisher's editors or the independent author may publish."</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">article</span><span class="o">.</span><span class="n">approved</span><span class="p">:</span>
                 <span class="n">article</span><span class="o">.</span><span class="n">approved</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="n">article</span><span class="o">.</span><span class="n">approved_by</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span>
+                <span class="n">article</span><span class="o">.</span><span class="n">approved_by</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">request</span><span class="o">.</span><span class="n">user</span> <span class="k">if</span> <span class="n">article</span><span class="o">.</span><span class="n">publisher_id</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">)</span>
                 <span class="n">article</span><span class="o">.</span><span class="n">approved_at</span> <span class="o">=</span> <span class="n">timezone</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
-                <span class="n">article</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"approved"</span><span class="p">,</span> <span class="s2">"approved_by"</span><span class="p">,</span> <span class="s2">"approved_at"</span><span class="p">])</span>
+                <span class="n">article</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                    <span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"approved"</span><span class="p">,</span> <span class="s2">"approved_by"</span><span class="p">,</span> <span class="s2">"approved_at"</span><span class="p">]</span>
+                <span class="p">)</span>
                 <span class="n">queue_publication_emails</span><span class="p">(</span><span class="n">article</span><span class="p">)</span>
         <span class="n">failures</span> <span class="o">=</span> <span class="n">send_publication_emails</span><span class="p">(</span><span class="n">article</span><span class="p">)</span>
         <span class="n">posted</span> <span class="o">=</span> <span class="n">post_approved_article</span><span class="p">(</span><span class="n">article</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
-            <span class="p">{</span><span class="s2">"approved"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"email_failures"</span><span class="p">:</span> <span class="n">failures</span><span class="p">,</span> <span class="s2">"api_logged"</span><span class="p">:</span> <span class="n">posted</span><span class="p">}</span>
+            <span class="p">{</span>
+                <span class="s2">"approved"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">"email_failures"</span><span class="p">:</span> <span class="n">failures</span><span class="p">,</span>
+                <span class="s2">"api_logged"</span><span class="p">:</span> <span class="n">posted</span><span class="p">,</span>
+            <span class="p">}</span>
         <span class="p">)</span></div>
 </div>
 
@@ -218,7 +237,9 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">expected</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">secrets</span><span class="o">.</span><span class="n">compare_digest</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">supplied</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">PermissionDenied</span><span class="p">(</span><span class="s2">"Invalid approval service credentials."</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">Response</span><span class="p">({</span><span class="s2">"detail"</span><span class="p">:</span> <span class="s2">"A JSON object is required."</span><span class="p">},</span> <span class="n">status</span><span class="o">=</span><span class="mi">400</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">"detail"</span><span class="p">:</span> <span class="s2">"A JSON object is required."</span><span class="p">},</span> <span class="n">status</span><span class="o">=</span><span class="mi">400</span>
+            <span class="p">)</span>
         <span class="n">pk</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"article_id"</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pk</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
@@ -227,7 +248,8 @@
         <span class="n">article</span> <span class="o">=</span> <span class="n">get_object_or_404</span><span class="p">(</span><span class="n">Article</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="n">pk</span><span class="p">,</span> <span class="n">approved</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">ApprovedArticleLog</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">article</span><span class="o">=</span><span class="n">article</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
-            <span class="p">{</span><span class="s2">"article_id"</span><span class="p">:</span> <span class="n">article</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span> <span class="s2">"logged"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span> <span class="n">status</span><span class="o">=</span><span class="mi">201</span> <span class="k">if</span> <span class="n">created</span> <span class="k">else</span> <span class="mi">200</span>
+            <span class="p">{</span><span class="s2">"article_id"</span><span class="p">:</span> <span class="n">article</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span> <span class="s2">"logged"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+            <span class="n">status</span><span class="o">=</span><span class="mi">201</span> <span class="k">if</span> <span class="n">created</span> <span class="k">else</span> <span class="mi">200</span><span class="p">,</span>
         <span class="p">)</span></div>
 </div>
 
@@ -249,7 +271,8 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">"""Reject reader writes before serializer validation."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
-            <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span>
+            <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">"journalist"</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">has_role</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="s2">"editor"</span><span class="p">)</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="n">PermissionDenied</span><span class="p">(</span>
                 <span class="s2">"Only journalists and editors can create newsletters."</span>

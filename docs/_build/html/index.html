@@ -40,10 +40,12 @@ This reference extracts docstrings from the application source.</p>
 <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">NewsDesk user guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#docker-installation-complete-independent-route">Docker installation: complete independent route</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#manual-installation-separate-alternative">Manual installation: separate alternative</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#accounts-and-publishers">Accounts and publishers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#publishing-a-story">Publishing a story</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#publishers-and-newsletters">Publishers and newsletters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="usage.html#api-clients">API clients</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#subscriptions-and-delivery-status">Subscriptions and delivery status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#newsletters-and-api-clients">Newsletters and API clients</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#verification-and-troubleshooting">Verification and troubleshooting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="usage.html#deployment-limits">Deployment limits</a></li>
 </ul>
@@ -72,7 +74,7 @@ This reference extracts docstrings from the application source.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="news.models.Article">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">news.models.</span></span><span class="sig-name descname"><span class="pre">Article</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/models.html#Article"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.models.Article" title="Link to this definition">¶</a></dt>
-<dd><p>Store a journalist’s draft and its editor-controlled approval state.</p>
+<dd><p>Store a draft published by its publisher editor or independent author.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="news.models.Article.DoesNotExist">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DoesNotExist</span></span><a class="headerlink" href="#news.models.Article.DoesNotExist" title="Link to this definition">¶</a></dt>
@@ -164,7 +166,7 @@ This reference extracts docstrings from the application source.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="news.models.Publisher">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">news.models.</span></span><span class="sig-name descname"><span class="pre">Publisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/models.html#Publisher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.models.Publisher" title="Link to this definition">¶</a></dt>
-<dd><p>Represent a news organization whose membership is managed by an admin.</p>
+<dd><p>Represent a news organization managed by its editors in the application.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="news.models.Publisher.DoesNotExist">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DoesNotExist</span></span><a class="headerlink" href="#news.models.Publisher.DoesNotExist" title="Link to this definition">¶</a></dt>
@@ -292,6 +294,30 @@ This reference extracts docstrings from the application source.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="news.forms.PublisherForm">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">news.forms.</span></span><span class="sig-name descname"><span class="pre">PublisherForm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/forms.html#PublisherForm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.forms.PublisherForm" title="Link to this definition">¶</a></dt>
+<dd><p>Let an editor create an organization and select registered journalists.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="news.forms.PublisherForm.Meta">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Meta</span></span><a class="reference internal" href="_modules/news/forms.html#PublisherForm.Meta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.forms.PublisherForm.Meta" title="Link to this definition">¶</a></dt>
+<dd><p>Keep editor ownership controlled by the authenticated view.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="news.forms.PublisherForm.Meta.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#news.forms.PublisherForm.Meta.model" title="Link to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#news.models.Publisher" title="news.models.Publisher"><code class="xref py py-class docutils literal notranslate"><span class="pre">Publisher</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="news.forms.PublisherForm.media">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">media</span></span><a class="headerlink" href="#news.forms.PublisherForm.media" title="Link to this definition">¶</a></dt>
+<dd><p>Return all media required to render the widgets on this form.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="news.forms.RegisterForm">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">news.forms.</span></span><span class="sig-name descname"><span class="pre">RegisterForm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/forms.html#RegisterForm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.forms.RegisterForm" title="Link to this definition">¶</a></dt>
 <dd><p>Extend Django registration with a required email and news role.</p>
@@ -305,6 +331,12 @@ This reference extracts docstrings from the application source.</p>
 <dd><p>alias of <a class="reference internal" href="#accounts.models.User" title="accounts.models.User"><code class="xref py py-class docutils literal notranslate"><span class="pre">User</span></code></a></p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="news.forms.RegisterForm.clean_email">
+<span class="sig-name descname"><span class="pre">clean_email</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/forms.html#RegisterForm.clean_email"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.forms.RegisterForm.clean_email" title="Link to this definition">¶</a></dt>
+<dd><p>Reject case-insensitive duplicates before creating an account.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -358,7 +390,7 @@ This reference extracts docstrings from the application source.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="news.views.approve_article">
 <span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">approve_article</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pk</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#approve_article"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.approve_article" title="Link to this definition">¶</a></dt>
-<dd><p>Publish an editor-approved draft and deliver queued reader notifications.</p>
+<dd><p>Publish an authorized draft and deliver queued reader notifications.</p>
 <p>Approval and notification records commit before SMTP is attempted. A repeated
 POST retries only unsent notifications and does not duplicate tracked mail.</p>
 </dd></dl>
@@ -366,7 +398,7 @@ POST retries only unsent notifications and does not duplicate tracked mail.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="news.views.article_create">
 <span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">article_create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#article_create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.article_create" title="Link to this definition">¶</a></dt>
-<dd><p>Allow journalists to submit drafts for editorial approval.</p>
+<dd><p>Save publisher submissions or independent drafts for the owning journalist.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -384,7 +416,7 @@ POST retries only unsent notifications and does not duplicate tracked mail.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="news.views.article_update">
 <span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">article_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pk</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#article_update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.article_update" title="Link to this definition">¶</a></dt>
-<dd><p>Edit authorized content and require approval again after any change.</p>
+<dd><p>Edit authorized content and require a fresh publish action after changes.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -436,6 +468,12 @@ POST retries only unsent notifications and does not duplicate tracked mail.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="news.views.publisher_manage">
+<span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">publisher_manage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pk</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#publisher_manage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.publisher_manage" title="Link to this definition">¶</a></dt>
+<dd><p>Create publishers or update an organization owned by the current editor.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="news.views.register">
 <span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#register"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.register" title="Link to this definition">¶</a></dt>
 <dd><p>Create an account with its selected role and sign the new user in.</p>
@@ -445,6 +483,12 @@ POST retries only unsent notifications and does not duplicate tracked mail.</p>
 <dt class="sig sig-object py" id="news.views.saved_articles">
 <span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">saved_articles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#saved_articles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.saved_articles" title="Link to this definition">¶</a></dt>
 <dd><p>Display the reader’s bookmarks, excluding articles returned to draft.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="news.views.subscribe_article">
+<span class="sig-prename descclassname"><span class="pre">news.views.</span></span><span class="sig-name descname"><span class="pre">subscribe_article</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pk</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/views.html#subscribe_article"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.views.subscribe_article" title="Link to this definition">¶</a></dt>
+<dd><p>Add or remove only the current article’s author or publisher subscription.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -472,22 +516,7 @@ POST retries only unsent notifications and does not duplicate tracked mail.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="news.services.fetch_external_news">
 <span class="sig-prename descclassname"><span class="pre">news.services.</span></span><span class="sig-name descname"><span class="pre">fetch_external_news</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'technology'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/services.html#fetch_external_news"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.services.fetch_external_news" title="Link to this definition">¶</a></dt>
-<dd><p>Fetch normalized stories, returning an empty list on HTTP/JSON errors.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>query</strong> (<em>str</em>) – Search terms, defaulting to technology.</p></li>
-<li><p><strong>limit</strong> (<em>int</em>) – Maximum number of requested results, defaulting to 10.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dictionaries containing title, url, author, and created_at.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[dict]</p>
-</dd>
-</dl>
-<p>The request has a five-second timeout. Entries without a title are skipped.</p>
+<dd><p>Return a normalized list of current stories from the Hacker News API.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -522,27 +551,19 @@ SMTP accepts a message but before the database commit can still duplicate mail.<
 <dl class="py function">
 <dt class="sig sig-object py" id="news.roles.can_edit">
 <span class="sig-prename descclassname"><span class="pre">news.roles.</span></span><span class="sig-name descname"><span class="pre">can_edit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">article</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/roles.html#can_edit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.roles.can_edit" title="Link to this definition">¶</a></dt>
-<dd><p>Allow editors to manage articles and journalists to manage their own.</p>
+<dd><p>Allow article owners and assigned publisher editors to manage stories.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="news.roles.can_publish">
+<span class="sig-prename descclassname"><span class="pre">news.roles.</span></span><span class="sig-name descname"><span class="pre">can_publish</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">article</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/roles.html#can_publish"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.roles.can_publish" title="Link to this definition">¶</a></dt>
+<dd><p>Let publisher editors approve, or independent journalists self-publish.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="news.roles.has_role">
 <span class="sig-prename descclassname"><span class="pre">news.roles.</span></span><span class="sig-name descname"><span class="pre">has_role</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/roles.html#has_role"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.roles.has_role" title="Link to this definition">¶</a></dt>
-<dd><p>Check a role without granting permissions to anonymous users.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>user</strong> – Django user or anonymous user from the current request.</p></li>
-<li><p><strong>role</strong> (<em>str</em>) – Expected profile role: reader, journalist, or editor.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Whether the authenticated user has that profile role.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
-</dd>
-</dl>
+<dd><p>Return whether an authenticated user has the requested profile role.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -554,15 +575,11 @@ SMTP accepts a message but before the database commit can still duplicate mail.<
 </section>
 <section id="module-accounts.models">
 <span id="custom-user"></span><h2>Custom user<a class="headerlink" href="#module-accounts.models" title="Link to this heading">¶</a></h2>
-<p>Provide the custom user model for NewsDesk authentication.</p>
-<p>The model reuses legacy account tables. Role and subscription state is stored
-on the related news profile, preserving existing accounts during consolidation.</p>
+<p>Extend Django users without replacing existing account tables or passwords.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="accounts.models.User">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">accounts.models.</span></span><span class="sig-name descname"><span class="pre">User</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/accounts/models.html#User"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#accounts.models.User" title="Link to this definition">¶</a></dt>
 <dd><p>Expose role-specific news relationships through a normalized profile.</p>
-<p>Use <code class="docutils literal notranslate"><span class="pre">get_user_model()</span></code> to retrieve this class in application code.
-The model does not grant editorial access merely because an account is staff.</p>
 <p>Reuse the original auth_user table so existing article ownership and password
 hashes remain valid. Reader subscription joins live on the one-to-one profile;
 empty/nonapplicable relationships are exposed as None for other roles.</p>
@@ -575,6 +592,12 @@ empty/nonapplicable relationships are exposed as None for other roles.</p>
 <dt class="sig sig-object py" id="accounts.models.User.MultipleObjectsReturned">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">MultipleObjectsReturned</span></span><a class="headerlink" href="#accounts.models.User.MultipleObjectsReturned" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="accounts.models.User.clean">
+<span class="sig-name descname"><span class="pre">clean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/accounts/models.html#User.clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#accounts.models.User.clean" title="Link to this definition">¶</a></dt>
+<dd><p>Use a consistent identity for email validation and storage.</p>
+</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="accounts.models.User.independent_articles">
@@ -603,15 +626,13 @@ empty/nonapplicable relationships are exposed as None for other roles.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="accounts.models.User.role">
 <em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">role</span></span><a class="headerlink" href="#accounts.models.User.role" title="Link to this definition">¶</a></dt>
-<dd><p>Read the profile role without creating or modifying a profile.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The assigned role, or None for an account without a profile.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str or None</p>
-</dd>
-</dl>
+<dd><p>Return the assigned role, or None for an unassigned admin account.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="accounts.models.User.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/accounts/models.html#User.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#accounts.models.User.save" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize email on ordinary account writes, including manager creates.</p>
 </dd></dl>
 
 </dd></dl>
@@ -635,7 +656,7 @@ empty/nonapplicable relationships are exposed as None for other roles.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="news.api.ArticleApproval">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">news.api.</span></span><span class="sig-name descname"><span class="pre">ArticleApproval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/api.html#ArticleApproval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.api.ArticleApproval" title="Link to this definition">¶</a></dt>
-<dd><p>Publish a draft as an editor and retry unsent external notifications.</p>
+<dd><p>Publish as a publisher editor or independent owner; retry pending delivery.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="news.api.ArticleApproval.post">
 <span class="sig-name descname"><span class="pre">post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pk</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/news/api.html#ArticleApproval.post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#news.api.ArticleApproval.post" title="Link to this definition">¶</a></dt>
