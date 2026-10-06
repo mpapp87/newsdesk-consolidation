@@ -31,7 +31,11 @@
           <div class="body" role="main">
             
   <h1>Source code for accounts.models</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""Extend Django users without replacing existing account tables or passwords."""</span>
+<span></span><span class="sd">"""Provide the custom user model for NewsDesk authentication.</span>
+
+<span class="sd">The model reuses legacy account tables. Role and subscription state is stored</span>
+<span class="sd">on the related news profile, preserving existing accounts during consolidation.</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractUser</span>
 
@@ -40,6 +44,9 @@
 <a class="viewcode-back" href="../../index.html#news.forms.User">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">User</span><span class="p">(</span><span class="n">AbstractUser</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Expose role-specific news relationships through a normalized profile.</span>
+
+<span class="sd">    Use ``get_user_model()`` to retrieve this class in application code.</span>
+<span class="sd">    The model does not grant editorial access merely because an account is staff.</span>
 
 <span class="sd">    Reuse the original auth_user table so existing article ownership and password</span>
 <span class="sd">    hashes remain valid. Reader subscription joins live on the one-to-one profile;</span>
