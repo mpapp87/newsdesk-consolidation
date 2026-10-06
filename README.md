@@ -131,8 +131,7 @@ git clone https://github.com/mpapp87/newsdesk-consolidation.git
 cd newsdesk-consolidation
 ```
 
-For the supplied ZIP, extract it and open the `NewsDesk` folder containing `manage.py`.
-Do not use the Task 19 eCommerce folder.
+For a GitHub ZIP download, extract it and open the directory containing `manage.py`.
 
 ## Setup: Python and dependencies
 
@@ -156,7 +155,7 @@ Install MySQL client build prerequisites **before** installing requirements:
 python -m pip install -r requirements.txt
 ```
 
-Django 5.2 supports MySQL 8.0.11+ and MariaDB 10.5+. This repository's automated checks run against MySQL 8.0 and MariaDB 10.11. See [Django database notes](https://docs.djangoproject.com/en/5.2/ref/databases/).
+Django 5.2 supports MySQL 8.0.11+ and MariaDB 10.5+. This consolidation repository's automated checks run against MariaDB 10.11. See [Django database notes](https://docs.djangoproject.com/en/5.2/ref/databases/).
 
 ## Create the database
 
