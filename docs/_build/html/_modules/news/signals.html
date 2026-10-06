@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>news.signals &#8212; NewsDesk 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for news.signals</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Synchronize profile roles with least-privilege Django permission groups."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.apps</span><span class="w"> </span><span class="kn">import</span> <span class="n">apps</span> <span class="k">as</span> <span class="n">current_apps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span><span class="p">,</span> <span class="n">Permission</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.auth.management</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_permissions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">post_migrate</span><span class="p">,</span> <span class="n">post_save</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">django.dispatch</span><span class="w"> </span><span class="kn">import</span> <span class="n">receiver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Profile</span>
+
+<span class="n">ROLE_PERMISSIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"reader"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"view_article"</span><span class="p">,</span> <span class="s2">"view_newsletter"</span><span class="p">],</span>
+    <span class="s2">"journalist"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"add"</span><span class="p">,</span> <span class="s2">"view"</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="s2">"delete"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"article"</span><span class="p">,</span> <span class="s2">"newsletter"</span><span class="p">)</span>
+    <span class="p">],</span>
+    <span class="s2">"editor"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"view_article"</span><span class="p">,</span>
+        <span class="s2">"change_article"</span><span class="p">,</span>
+        <span class="s2">"delete_article"</span><span class="p">,</span>
+        <span class="s2">"add_newsletter"</span><span class="p">,</span>
+        <span class="s2">"view_newsletter"</span><span class="p">,</span>
+        <span class="s2">"change_newsletter"</span><span class="p">,</span>
+        <span class="s2">"delete_newsletter"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="assign_group">
+<a class="viewcode-back" href="../../index.html#news.signals.assign_group">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">assign_group</span><span class="p">(</span><span class="n">profile</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="s2">"default"</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Assign only the selected role group and clear inapplicable subscriptions."""</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">Group</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="n">using</span><span class="p">)</span>
+    <span class="n">group</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">profile</span><span class="o">.</span><span class="n">role</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+    <span class="n">profile</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
+        <span class="o">*</span><span class="n">groups</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">name__in</span><span class="o">=</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">title</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ROLE_PERMISSIONS</span><span class="p">])</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span>
+            <span class="n">pk</span><span class="o">=</span><span class="n">group</span><span class="o">.</span><span class="n">pk</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">profile</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">profile</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">"reader"</span><span class="p">:</span>
+        <span class="n">profile</span><span class="o">.</span><span class="n">journalists</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">profile</span><span class="o">.</span><span class="n">publishers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="sync_profile_group">
+<a class="viewcode-back" href="../../index.html#news.signals.sync_profile_group">[docs]</a>
+<span class="nd">@receiver</span><span class="p">(</span><span class="n">post_save</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="n">Profile</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">sync_profile_group</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="s2">"default"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Keep registration and admin role changes synchronized with groups."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+        <span class="n">assign_group</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">using</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="initialize_role_groups">
+<a class="viewcode-back" href="../../index.html#news.signals.initialize_role_groups">[docs]</a>
+<span class="nd">@receiver</span><span class="p">(</span><span class="n">post_migrate</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">initialize_role_groups</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="s2">"default"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Create role permissions and backfill membership after migrations finish."""</span>
+    <span class="k">if</span> <span class="n">sender</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">"news"</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">historical_apps</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"apps"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">historical_apps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">historical_apps</span><span class="o">.</span><span class="n">get_model</span><span class="p">(</span><span class="s2">"news"</span><span class="p">,</span> <span class="s2">"Profile"</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">LookupError</span><span class="p">:</span>
+            <span class="k">return</span>
+    <span class="n">create_permissions</span><span class="p">(</span>
+        <span class="n">sender</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">using</span><span class="o">=</span><span class="n">using</span><span class="p">,</span> <span class="n">apps</span><span class="o">=</span><span class="n">historical_apps</span> <span class="ow">or</span> <span class="n">current_apps</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">role</span><span class="p">,</span> <span class="n">codes</span> <span class="ow">in</span> <span class="n">ROLE_PERMISSIONS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">group</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Group</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="n">using</span><span class="p">)</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">role</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">permissions</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+            <span class="n">Permission</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="n">using</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">content_type__app_label</span><span class="o">=</span><span class="s2">"news"</span><span class="p">,</span> <span class="n">codename__in</span><span class="o">=</span><span class="n">codes</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">profile</span> <span class="ow">in</span> <span class="n">Profile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="n">using</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">"user"</span><span class="p">)</span><span class="o">.</span><span class="n">iterator</span><span class="p">():</span>
+        <span class="n">assign_group</span><span class="p">(</span><span class="n">profile</span><span class="p">,</span> <span class="n">using</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">NewsDesk</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">NewsDesk user guide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
