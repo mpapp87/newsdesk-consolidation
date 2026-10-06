@@ -1,0 +1,45 @@
+name: NewsDesk container verification
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate private disposable test configuration
+        run: |
+          python - <<'PY'
+          import secrets
+          from pathlib import Path
+          content = Path('.env.docker.example').read_text()
+          for key in ('replace-with-a-generated-django-secret',
+                      'replace-with-a-generated-database-password',
+                      'replace-with-a-different-generated-root-password',
+                      'replace-with-a-generated-service-key'):
+              content = content.replace(key, secrets.token_hex(32))
+          Path('.env').write_text(content)
+          PY
+      - name: Build and start Django with MariaDB
+        run: docker compose up --build -d
+      - name: Check HTTP response and migrations
+        run: |
+          curl --fail --retry 30 --retry-connrefused --retry-delay 2 http://localhost:8000/ -o /tmp/home.html
+          grep -q NewsDesk /tmp/home.html
+          docker compose exec -T web python manage.py check
+          docker compose exec -T web python manage.py makemigrations --check --dry-run
+      - name: Run tests against MariaDB
+        run: |
+          docker compose exec -T db sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON test_newsdesk.* TO '\''newsdesk'\''@'\''%'\'';"'
+          docker compose exec -T web python manage.py test --noinput
+      - name: Build Sphinx documentation
+        run: |
+          docker compose exec -T --user root web pip install -r requirements-docs.txt
+          docker compose exec -T web python -m sphinx -W --keep-going -b html docs /tmp/newsdesk-docs
+      - name: Stop disposable containers
+        if: always()
+        run: docker compose down
